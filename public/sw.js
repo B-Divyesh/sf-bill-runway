@@ -1,4 +1,4 @@
-const VERSION = 'bill-runway-v5';
+const VERSION = 'bill-runway-v6';
 const SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/art/runway-hero-720.webp', '/art/runway-hero-1200.webp'];
 
 async function cacheFresh(cache, url) {
