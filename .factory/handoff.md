@@ -1,5 +1,17 @@
 # Bill Runway v1 handoff
 
+> ## Independent verification status: **FAIL** (2026-08-28)
+>
+> Candidate `9f3e3ec313e26782d0e70f3762bb5edb7716e454` is deployed byte-for-byte
+> at <https://bill-runway.sociobot.in>, but must not be accepted yet. The
+> advertised `$19` Plus checkout returns production HTTP 404
+> (`{"error":"enabled factory product","status":404}`), and import accepts an
+> impossible date such as `2026-09-31` then silently forecasts it as Oct 1.
+> See [`.factory/verification.md`](verification.md) for exact commands,
+> complete evidence, and required release actions. Clean-install tests and
+> build pass; core local-first planning, offline reload, update toast,
+> accessibility, responsive layout, privacy, and live build identity passed.
+
 Completed 2026-08-28 for work order `bill-runway-build-1`.
 
 ## What was built
