@@ -26,6 +26,7 @@ test('plans an uncovered bill, persists it, and marks it paid', async ({ page })
 
 test('stays usable offline after an online visit', async ({ page, context }) => {
   await page.waitForFunction(() => navigator.serviceWorker?.controller !== null);
+  await page.waitForFunction(async () => Boolean(await caches.open('bill-runway-v3').then(cache => cache.match('/index.html'))));
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
@@ -34,6 +35,9 @@ test('stays usable offline after an online visit', async ({ page, context }) => 
 });
 
 test('has no automatically detectable serious accessibility issues', async ({ page }) => {
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
-  expect(results.violations.filter(v => ['serious', 'critical'].includes(v.impact || ''))).toEqual([]);
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(results.violations.filter(v => ['serious', 'critical'].includes(v.impact || '')), `${theme} theme`).toEqual([]);
+  }
 });

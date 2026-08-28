@@ -1,14 +1,20 @@
-const VERSION = 'bill-runway-v1';
+const VERSION = 'bill-runway-v3';
 const SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/art/runway-hero-720.webp', '/art/runway-hero-1200.webp'];
+
+async function cacheFresh(cache, url) {
+  const response = await fetch(new Request(url, { cache: 'reload' }));
+  if (!response.ok) throw new Error(`Could not precache ${url}`);
+  await cache.put(url, response);
+}
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(VERSION);
-    await cache.addAll(SHELL);
+    await Promise.all(SHELL.map(url => cacheFresh(cache, url)));
     try {
-      const html = await (await fetch('/index.html')).text();
+      const html = await (await cache.match('/index.html')).text();
       const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map(match => match[1]);
-      await cache.addAll(assets);
+      await Promise.all(assets.map(url => cacheFresh(cache, url)));
     } catch {}
     await self.skipWaiting();
   })());
