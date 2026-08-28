@@ -1,0 +1,10 @@
+{
+  "slug": "bill-runway",
+  "title": "Bill Runway",
+  "territory": "utilities",
+  "user": "A person or caregiver who needs to see upcoming invoices, due dates, and cash needed before income arrives, without connecting bank accounts or adopting a full budgeting system.",
+  "smallest_useful_product": "Offline PWA for a list of bills/invoices, expected income dates, one-time or recurring due rules, and a timeline that flags an uncovered amount; export a one-page payment run.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time",
+  "constraints": "No financial-institution credentials; use decimal-safe currency arithmetic; label forecasts as user-entered planning data, not financial advice."
+}
