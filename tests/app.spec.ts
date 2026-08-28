@@ -26,12 +26,27 @@ test('plans an uncovered bill, persists it, and marks it paid', async ({ page })
 
 test('stays usable offline after an online visit', async ({ page, context }) => {
   await page.waitForFunction(() => navigator.serviceWorker?.controller !== null);
-  await page.waitForFunction(async () => Boolean(await caches.open('bill-runway-v3').then(cache => cache.match('/index.html'))));
+  await page.waitForFunction(async () => Boolean(await caches.open('bill-runway-v4').then(cache => cache.match('/index.html'))));
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByText(/Offline ·/)).toBeVisible();
   await context.setOffline(false);
+});
+
+test('rejects an imported backup with an impossible calendar date without replacing the plan', async ({ page }) => {
+  await page.locator('#import-json').setInputFiles('tests/fixtures/impossible-date.json');
+  await expect(page.getByRole('status')).toContainText('Import failed. Choose an unmodified Bill Runway JSON backup.');
+  await expect(page.getByText('My runway')).toBeVisible();
+  await expect(page.getByText('Impossible bill')).not.toBeVisible();
+});
+
+test('keeps the planner within a 390px viewport and exposes the keyboard skip link', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.skip-link')).toBeFocused();
 });
 
 test('has no automatically detectable serious accessibility issues', async ({ page }) => {

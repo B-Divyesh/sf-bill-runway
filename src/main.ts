@@ -1,6 +1,7 @@
 import './styles.css';
 import { deleteEntry, loadData, replaceData, saveEntry, saveSettings } from './db';
-import { addDays, buildRunway, formatMoney, fromISO, parseMoney, todayISO } from './money';
+import { isValidAppData } from './data-validation';
+import { addDays, buildRunway, formatMoney, fromISO, isValidISODate, parseMoney, todayISO } from './money';
 import type { AppData, Entry, EntryKind, Occurrence, Recurrence, Settings } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -161,7 +162,7 @@ async function submitEntry(event: Event) {
   const firstDate = String(fd.get('date'));
   if (!name) { error.textContent = 'Enter a name for this waypoint.'; return; }
   if (amount === null || amount <= 0) { error.textContent = 'Enter a positive amount with no more than two decimal places.'; return; }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate)) { error.textContent = 'Choose a valid date.'; return; }
+  if (!isValidISODate(firstDate)) { error.textContent = 'Choose a valid calendar date.'; return; }
   const old = editingId ? data.entries.find(e => e.id === editingId) : undefined;
   const now = new Date().toISOString();
   const entry: Entry = { id: old?.id ?? crypto.randomUUID(), kind: String(fd.get('kind')) as EntryKind, name, amountCents: amount, firstDate, recurrence: String(fd.get('recurrence')) as Recurrence, note: String(fd.get('note')).trim(), paidDates: old?.paidDates ?? [], createdAt: old?.createdAt ?? now, updatedAt: now };
@@ -209,14 +210,8 @@ function exportCSV() {
 async function importJSON(event: Event) {
   const input = event.currentTarget as HTMLInputElement; const file = input.files?.[0]; if (!file) return;
   try {
-    const parsed = JSON.parse(await file.text()) as AppData;
-    if (parsed.version !== 1 || !Array.isArray(parsed.entries) || parsed.entries.length > 5000 || !parsed.settings
-      || typeof parsed.settings.planName !== 'string' || !['USD', 'GBP', 'EUR', 'INR', 'CAD', 'AUD'].includes(parsed.settings.currency)
-      || !Number.isSafeInteger(parsed.settings.balanceCents) || parsed.settings.balanceCents < 0
-      || parsed.entries.some(e => typeof e.id !== 'string' || !e.id || typeof e.name !== 'string' || typeof e.note !== 'string'
-        || !['bill', 'income'].includes(e.kind) || !['none', 'weekly', 'monthly', 'yearly'].includes(e.recurrence)
-        || typeof e.firstDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(e.firstDate) || !Number.isSafeInteger(e.amountCents)
-        || e.amountCents <= 0 || !Array.isArray(e.paidDates) || e.paidDates.some(date => typeof date !== 'string'))) throw new Error('shape');
+    const parsed = JSON.parse(await file.text());
+    if (!isValidAppData(parsed)) throw new Error('shape');
     if (!confirm(`Replace this plan with ${parsed.entries.length} imported entries? A backup first is recommended.`)) return;
     await replaceData(parsed); data = await loadData(); renderPlanner(); announce('Backup imported.');
   } catch { announce('Import failed. Choose an unmodified Bill Runway JSON backup.'); }

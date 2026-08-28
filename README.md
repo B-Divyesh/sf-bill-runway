@@ -22,13 +22,13 @@ Live product: [bill-runway.sociobot.in](https://bill-runway.sociobot.in)
 Requires Node.js 20 or newer.
 
 ```sh
-npm install
+npm ci
 npm run dev
 npm test
 npm run build
 ```
 
-`npm test` runs unit tests and Playwright journeys (including axe and offline coverage). The exact production command is `npm run build`; it writes the static app to `./dist`, with `dist/index.html` at its root.
+`npm test` runs unit tests and Playwright journeys (including malformed-backup, axe, offline, 390px, and keyboard coverage). The exact production command is `npm run build`; it runs strict TypeScript checking and writes the static app to `./dist`, with `dist/index.html` at its root.
 
 To inspect the production build:
 

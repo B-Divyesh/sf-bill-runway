@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "settings": {
+    "balanceCents": 0,
+    "currency": "USD",
+    "planName": "Corrupt plan"
+  },
+  "entries": [
+    {
+      "id": "bad-date",
+      "kind": "bill",
+      "name": "Impossible bill",
+      "amountCents": 100,
+      "firstDate": "2026-09-31",
+      "recurrence": "none",
+      "note": "",
+      "paidDates": [],
+      "createdAt": "",
+      "updatedAt": ""
+    }
+  ]
+}

@@ -1,16 +1,30 @@
 import type { AppData, Entry, Settings } from './types';
+import { isValidEntry } from './data-validation';
 
 const DB_NAME = 'bill-runway';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const initialSettings: Settings = { balanceCents: 0, currency: 'USD', planName: 'My runway', updatedAt: new Date(0).toISOString() };
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = event => {
       const db = request.result;
       if (!db.objectStoreNames.contains('entries')) db.createObjectStore('entries', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+      // V1 accepted date-shaped strings such as 2026-09-31. Reject those
+      // records during migration so an impossible due date can never be
+      // normalised into a different day by the forecast engine.
+      if ((event as IDBVersionChangeEvent).oldVersion < 2 && db.objectStoreNames.contains('entries')) {
+        const entries = request.transaction!.objectStore('entries');
+        const cursor = entries.openCursor();
+        cursor.onsuccess = () => {
+          const current = cursor.result;
+          if (!current) return;
+          if (!isValidEntry(current.value)) current.delete();
+          current.continue();
+        };
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -27,10 +41,12 @@ function request<T>(value: IDBRequest<T>): Promise<T> {
 export async function loadData(): Promise<AppData> {
   const db = await openDB();
   const tx = db.transaction(['entries', 'settings'], 'readonly');
-  const entries = await request(tx.objectStore('entries').getAll()) as Entry[];
+  const storedEntries = await request(tx.objectStore('entries').getAll()) as Entry[];
   const record = await request(tx.objectStore('settings').get('main')) as { key: string; value: Settings } | undefined;
   db.close();
-  return { version: 1, entries, settings: record?.value ?? initialSettings };
+  // Defense in depth for manually-corrupted IndexedDB records after migration.
+  // Invalid records are ignored rather than allowed to silently alter a date.
+  return { version: 1, entries: storedEntries.filter(isValidEntry), settings: record?.value ?? initialSettings };
 }
 
 export async function saveEntry(entry: Entry): Promise<void> {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildRunway, datesFor, parseMoney } from './money';
+import { buildRunway, datesFor, isValidISODate, parseMoney } from './money';
+import { isValidAppData } from './data-validation';
 import type { Entry } from './types';
 
 const entry = (overrides: Partial<Entry> = {}): Entry => ({
@@ -12,6 +13,23 @@ describe('decimal-safe money', () => {
     expect(parseMoney('0.10')).toBe(10);
     expect(parseMoney('12.345')).toBeNull();
     expect(parseMoney('-4')).toBeNull();
+  });
+});
+
+describe('calendar dates', () => {
+  it('accepts real ISO calendar dates including leap days and rejects normalised dates', () => {
+    expect(isValidISODate('2024-02-29')).toBe(true);
+    expect(isValidISODate('2026-02-29')).toBe(false);
+    expect(isValidISODate('2026-09-31')).toBe(false);
+    expect(isValidISODate('2026-09-30')).toBe(true);
+  });
+
+  it('rejects backups with impossible first or paid dates before replacing local data', () => {
+    const backup = { version: 1, settings: { balanceCents: 0, currency: 'USD', planName: 'Test' }, entries: [entry()] };
+    expect(isValidAppData(backup)).toBe(true);
+    expect(isValidAppData({ ...backup, entries: [entry({ firstDate: '2026-09-31' })] })).toBe(false);
+    expect(isValidAppData({ ...backup, entries: [entry({ paidDates: ['2026-02-29'] })] })).toBe(false);
+    expect(isValidAppData({ ...backup, entries: [entry({ firstDate: '2024-02-29', paidDates: ['2024-02-29'] })] })).toBe(true);
   });
 });
 
