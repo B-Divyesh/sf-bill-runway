@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "settings": {
+    "balanceCents": 10000,
+    "currency": "USD",
+    "planName": "Leap plan"
+  },
+  "entries": [
+    {
+      "id": "leap",
+      "kind": "bill",
+      "name": "Leap bill",
+      "amountCents": 100,
+      "firstDate": "2024-02-29",
+      "recurrence": "none",
+      "note": "",
+      "paidDates": [],
+      "createdAt": "",
+      "updatedAt": ""
+    }
+  ]
+}

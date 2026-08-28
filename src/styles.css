@@ -101,7 +101,7 @@ main { overflow:hidden; }
 .uncovered .event-balance span { color:var(--danger); }
 .event-balance small { color:var(--muted); font-size:.72rem; font-variant-numeric:tabular-nums; }
 .paid .event-main > div,.paid .event-amount { opacity:.55; text-decoration:line-through; }
-.paid-toggle { grid-area:action; justify-self:end; min-height:32px; border:0; background:transparent; color:var(--muted); text-decoration:underline; font-size:.78rem; padding:4px; }
+.paid-toggle { grid-area:action; justify-self:end; min-height:44px; border:0; background:transparent; color:var(--muted); text-decoration:underline; font-size:.78rem; padding:8px; }
 .empty-timeline { min-height:300px; padding:60px 20px 40px 108px; background:linear-gradient(110deg,transparent,color-mix(in srgb,var(--accent) 5%,transparent)); }
 .empty-timeline h2 { font-size:2rem; }
 .empty-timeline p { color:var(--muted); max-width:42ch; }
@@ -128,7 +128,8 @@ main { overflow:hidden; }
 .plus-active { padding:12px 18px; border:1px solid currentColor; border-radius:999px; font-weight:800; white-space:nowrap; }
 footer { width:min(1260px,calc(100% - 48px)); margin:0 auto; padding:30px 0 max(35px,env(safe-area-inset-bottom)); border-top:1px solid color-mix(in srgb,var(--text) 20%,transparent); display:grid; grid-template-columns:1fr auto; gap:8px 30px; color:var(--muted); font-size:.82rem; }
 footer p { margin:0; }
-footer nav { display:flex; gap:20px; }
+footer nav { display:flex; gap:12px; }
+footer nav a,.legal a { display:inline-flex; min-height:44px; align-items:center; padding-inline:4px; }
 .art-credit { grid-column:1/-1; }
 
 dialog { width:min(610px,calc(100% - 32px)); max-height:calc(100dvh - 32px); overflow:auto; padding:0; border:1px solid color-mix(in srgb,var(--text) 25%,transparent); border-radius:24px; color:var(--text); background:var(--surface); box-shadow:0 25px 100px rgb(0 0 0 / 35%); }
@@ -146,6 +147,7 @@ textarea { resize:vertical; }
 .optional,.field-help,.fine-print { color:var(--muted); font-weight:400; font-size:.8rem; }
 .field-help { margin-top:-8px; }
 .fine-print { text-align:center; margin:18px auto 0; max-width:58ch; }
+.checkout-status { min-height:44px; display:flex; align-items:center; justify-content:center; margin:0; padding:10px 14px; border:1px solid color-mix(in srgb,var(--warning) 55%,transparent); border-radius:12px; color:var(--text); background:color-mix(in srgb,var(--warning) 10%,transparent); font-size:.88rem; }
 .form-error { min-height:24px; color:var(--danger); font-weight:700; font-size:.86rem; }
 .dialog-actions { display:flex; justify-content:flex-end; gap:8px; align-items:center; margin-top:18px; }
 .dialog-actions .spacer { flex:1; }

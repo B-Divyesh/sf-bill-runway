@@ -44,6 +44,11 @@ Deploy `dist/` as a static site with SPA fallback to `index.html`. The `/privacy
 
 `VITE_BILLING_BASE` optionally changes the Sociobot API base at build time. It defaults to `https://api.sociobot.in/api/v1`; use `https://pilot-api.sociobot.in/api/v1` for a registered staging product. No product ID or secret is embedded—the public slug is `bill-runway`.
 
+The Plus dialog checks the public Sociobot product catalogue before showing a
+checkout link. If the product is not registered or billing is unreachable, the
+app shows an availability message instead of sending someone to a dead checkout;
+license restore remains available.
+
 ## Privacy and data ownership
 
 Plan data stays in the browser's IndexedDB. License tokens and their daily verification cache use localStorage. Only license verification contacts the Sociobot billing API; payment is handled on the hosted Sociobot/Dodo checkout. See the in-product privacy and terms pages for details.

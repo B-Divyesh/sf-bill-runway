@@ -16,6 +16,9 @@ let online = navigator.onLine;
 let installPrompt: BeforeInstallPromptEvent | null = null;
 let editingId: string | null = null;
 let dialogKind: EntryKind = 'bill';
+let checkoutAvailable: boolean | null = null;
+let checkoutCheck: Promise<void> | null = null;
+let entryFocusSelector = '[data-open="bill"]';
 
 interface BeforeInstallPromptEvent extends Event { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }>; }
 
@@ -80,7 +83,7 @@ function renderSettingsDialog(): string {
 function renderLicenseDialog(): string {
   return `<dialog id="license-dialog" aria-labelledby="license-title"><form id="license-form" method="dialog" novalidate><div class="dialog-heading"><div><p class="eyebrow">One-time unlock</p><h2 id="license-title">See the longer road</h2></div><button class="icon-button close-license" type="button" aria-label="Close dialog">×</button></div>
   <p>Bill Runway Plus extends the forecast from 60 days to a full 12 months. Pay once: <strong>$19</strong>. Your core planner, recurring bills, printing, and backups stay free.</p>
-  <a class="button primary full" href="${BILLING_BASE}/products/bill-runway/checkout">Buy Plus for $19</a>
+  <div id="checkout-state" aria-live="polite" aria-busy="true"><a id="buy-plus" class="button primary full" href="${BILLING_BASE}/products/bill-runway/checkout" hidden>Buy Plus for $19</a><p id="checkout-status" class="checkout-status">Checking purchase availability…</p></div>
   <div class="or"><span>or restore a purchase</span></div><label>License token <input name="license" autocomplete="off" spellcheck="false" required></label><p class="field-help">Verification contacts Sociobot. Card details never enter this app.</p><p id="license-error" class="form-error" role="alert"></p>
   <div class="dialog-actions">${button('Cancel', 'button ghost close-license', 'type="button"')}${button('Verify license', 'button secondary', 'type="submit"')}</div><p class="fine-print">Purchase subject to our <a href="/terms">terms</a> and <a href="/privacy">privacy notice</a>. Sociobot/Dodo is merchant of record and handles refunds.</p></form></dialog>`;
 }
@@ -126,7 +129,9 @@ function renderPlanner() {
 function bindEvents() {
   document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(el => el.addEventListener('click', () => openEntry(el.dataset.open as EntryKind)));
   document.querySelectorAll<HTMLButtonElement>('[data-edit]').forEach(el => el.addEventListener('click', () => openEntry(data.entries.find(e => e.id === el.dataset.edit)!.kind, el.dataset.edit)));
-  document.querySelectorAll<HTMLButtonElement>('.close-dialog').forEach(el => el.addEventListener('click', () => (document.querySelector('#entry-dialog') as HTMLDialogElement).close()));
+  const entryDialog = document.querySelector<HTMLDialogElement>('#entry-dialog');
+  document.querySelectorAll<HTMLButtonElement>('.close-dialog').forEach(el => el.addEventListener('click', () => entryDialog?.close()));
+  entryDialog?.addEventListener('close', () => document.querySelector<HTMLElement>(entryFocusSelector)?.focus());
   document.querySelectorAll<HTMLButtonElement>('.close-settings').forEach(el => el.addEventListener('click', () => (document.querySelector('#settings-dialog') as HTMLDialogElement).close()));
   document.querySelectorAll<HTMLButtonElement>('.close-license').forEach(el => el.addEventListener('click', () => (document.querySelector('#license-dialog') as HTMLDialogElement).close()));
   document.querySelector('#entry-form')?.addEventListener('submit', submitEntry);
@@ -134,7 +139,7 @@ function bindEvents() {
   document.querySelector('#license-form')?.addEventListener('submit', submitLicense);
   document.querySelector('#delete-entry')?.addEventListener('click', removeCurrentEntry);
   document.querySelector('#open-settings')?.addEventListener('click', () => (document.querySelector('#settings-dialog') as HTMLDialogElement).showModal());
-  document.querySelector('#open-license')?.addEventListener('click', () => (document.querySelector('#license-dialog') as HTMLDialogElement).showModal());
+  document.querySelector('#open-license')?.addEventListener('click', openLicense);
   document.querySelectorAll<HTMLButtonElement>('[data-days]').forEach(el => el.addEventListener('click', () => changeDays(Number(el.dataset.days))));
   document.querySelectorAll<HTMLButtonElement>('[data-paid]').forEach(el => el.addEventListener('click', () => togglePaid(el.dataset.paid!, el.dataset.date!)));
   document.querySelector('#print-run')?.addEventListener('click', () => window.print());
@@ -147,9 +152,45 @@ function bindEvents() {
 }
 
 function openEntry(kind: EntryKind, id: string | null = null) {
-  dialogKind = kind; editingId = id; renderPlanner();
+  dialogKind = kind; editingId = id;
+  entryFocusSelector = id ? `[data-edit="${CSS.escape(id)}"]` : `[data-open="${kind}"]`;
+  renderPlanner();
   (document.querySelector('#entry-dialog') as HTMLDialogElement).showModal();
   setTimeout(() => document.querySelector<HTMLInputElement>('#entry-form input[name="name"]')?.focus(), 0);
+}
+
+function updateCheckoutState() {
+  const container = document.querySelector<HTMLElement>('#checkout-state');
+  const link = document.querySelector<HTMLAnchorElement>('#buy-plus');
+  const status = document.querySelector<HTMLElement>('#checkout-status');
+  if (!container || !link || !status) return;
+  container.setAttribute('aria-busy', checkoutAvailable === null ? 'true' : 'false');
+  link.hidden = checkoutAvailable !== true;
+  status.hidden = checkoutAvailable === true;
+  status.textContent = checkoutAvailable === null
+    ? 'Checking purchase availability…'
+    : 'Plus purchases are temporarily unavailable. You can still restore an existing license below.';
+}
+
+async function checkCheckoutAvailability() {
+  if (checkoutAvailable !== null) { updateCheckoutState(); return; }
+  if (checkoutCheck) return checkoutCheck;
+  checkoutCheck = (async () => {
+    try {
+      const response = await fetch(`${BILLING_BASE}/products`, { headers: { Accept: 'application/json' } });
+      const body = response.ok ? await response.json() as { data?: Array<{ slug?: string }> } : null;
+      checkoutAvailable = Boolean(body?.data?.some(product => product.slug === 'bill-runway'));
+    } catch { checkoutAvailable = false; }
+    updateCheckoutState();
+  })();
+  return checkoutCheck;
+}
+
+function openLicense() {
+  (document.querySelector('#license-dialog') as HTMLDialogElement).showModal();
+  if (!online) { checkoutAvailable = false; updateCheckoutState(); return; }
+  if (checkoutAvailable !== true) { checkoutAvailable = null; checkoutCheck = null; updateCheckoutState(); }
+  void checkCheckoutAvailability();
 }
 
 async function submitEntry(event: Event) {
@@ -168,7 +209,7 @@ async function submitEntry(event: Event) {
   const entry: Entry = { id: old?.id ?? crypto.randomUUID(), kind: String(fd.get('kind')) as EntryKind, name, amountCents: amount, firstDate, recurrence: String(fd.get('recurrence')) as Recurrence, note: String(fd.get('note')).trim(), paidDates: old?.paidDates ?? [], createdAt: old?.createdAt ?? now, updatedAt: now };
   await saveEntry(entry);
   data.entries = old ? data.entries.map(e => e.id === entry.id ? entry : e) : [...data.entries, entry];
-  renderPlanner(); announce(`${entry.kind === 'bill' ? 'Bill' : 'Income'} ${entry.name} saved.`);
+  renderPlanner(); document.querySelector<HTMLElement>(`[data-edit="${CSS.escape(entry.id)}"]`)?.focus(); announce(`${entry.kind === 'bill' ? 'Bill' : 'Income'} ${entry.name} saved.`);
 }
 
 async function removeCurrentEntry() {
@@ -192,7 +233,7 @@ async function togglePaid(id: string, date: string) {
 }
 
 function changeDays(next: number) {
-  if (next === 365 && !isPlus) { (document.querySelector('#license-dialog') as HTMLDialogElement).showModal(); return; }
+  if (next === 365 && !isPlus) { openLicense(); return; }
   days = next; renderPlanner();
 }
 
@@ -233,7 +274,8 @@ async function submitLicense(event: Event) {
 }
 
 async function verifyLicense(token: string, force = false): Promise<boolean> {
-  const cached = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null') as { token: string; valid: boolean; checkedAt: number } | null;
+  let cached: { token: string; valid: boolean; checkedAt: number } | null = null;
+  try { cached = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null'); } catch { localStorage.removeItem(VERDICT_KEY); }
   if (!force && cached?.token === token && cached.valid) isPlus = true;
   if (!force && cached?.token === token && Date.now() - cached.checkedAt < 86_400_000) return cached.valid;
   try {
@@ -253,7 +295,7 @@ async function init() {
   if (location.pathname === '/terms' || location.pathname === '/terms/') { app.innerHTML = legalPage('terms'); return; }
   const url = new URL(location.href); const returnedLicense = url.searchParams.get('license');
   if (returnedLicense) { localStorage.setItem(LICENSE_KEY, returnedLicense); url.searchParams.delete('license'); history.replaceState({}, '', url); }
-  const token = returnedLicense || localStorage.getItem(LICENSE_KEY); if (token) void verifyLicense(token).then(() => renderPlanner());
+  const token = returnedLicense || localStorage.getItem(LICENSE_KEY); if (token) void verifyLicense(token).then(() => { if (data) renderPlanner(); });
   try { data = await loadData(); renderPlanner(); } catch { app.innerHTML = `<main id="main" class="fatal"><h1>Bill Runway could not open local storage.</h1><p>Allow site data for this browser, then reload. Nothing has been sent anywhere.</p><button class="button primary" onclick="location.reload()">Try again</button></main>`; }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(reg => { reg.addEventListener('updatefound', () => { const worker = reg.installing; worker?.addEventListener('statechange', () => { if (worker.state === 'installed' && navigator.serviceWorker.controller) announce('An update is ready. Reload to use it.'); }); }); }).catch(() => {});
 }

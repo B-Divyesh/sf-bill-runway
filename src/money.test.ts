@@ -22,6 +22,10 @@ describe('calendar dates', () => {
     expect(isValidISODate('2026-02-29')).toBe(false);
     expect(isValidISODate('2026-09-31')).toBe(false);
     expect(isValidISODate('2026-09-30')).toBe(true);
+    expect(isValidISODate('2000-02-29')).toBe(true);
+    expect(isValidISODate('1900-02-29')).toBe(false);
+    expect(isValidISODate('0000-01-01')).toBe(false);
+    expect(isValidISODate('2026-00-10')).toBe(false);
   });
 
   it('rejects backups with impossible first or paid dates before replacing local data', () => {
