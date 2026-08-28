@@ -77,6 +77,31 @@ npm ci && npm test && npm run build
   - `dist/index.html`: `414a4c26d4e2383119c3aedaf87f1cb3301a0bcce8ddd58a3539acb6f80c5252`
   - `dist/sw.js`: `afad9ecb81227be6c5208c751eecdae1355ec4e14326576c46b897af2bd3084e`
 
+## Deployment and live verification
+
+- Commit `a76ec16` was pushed to `origin/main`, then `dist/` was deployed with
+  the work-order static deployment script to
+  <https://bill-runway.sociobot.in>.
+- Factory `verify-url.sh` passed against the live URL in 633 ms with no console
+  errors and the expected title, English language, one h1, main landmark, image
+  alternatives, and button names.
+- Live/local SHA-256 identity matches exactly for `index.html`, `sw.js`,
+  `manifest.webmanifest`, `privacy/index.html`, and `terms/index.html`. The live
+  index and worker hashes are the values above.
+- Root, `/privacy`, `/terms`, `/sw.js`, `/manifest.webmanifest`, and
+  `/offline.html` all return HTTP 200. The manifest now serves as
+  `application/manifest+json`; CSP, Permissions-Policy, HSTS, referrer policy,
+  and `nosniff` are present.
+- A fresh 390×844 live Chromium run had one h1, zero horizontal overflow, no
+  console/page errors, and no external requests on first load. After an online
+  visit it reloaded offline and displayed `Offline · your plan still works on
+  this device`.
+- Opening the live 12-month option queried the public catalogue, reported
+  `Plus purchases are temporarily unavailable`, kept the buy link hidden, and
+  left license restore enabled. The catalogue contains 22 products but not
+  `bill-runway`; the direct checkout still returns the independently reported
+  404.
+
 ## Run and deploy
 
 ```sh
