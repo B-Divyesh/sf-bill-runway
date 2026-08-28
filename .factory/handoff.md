@@ -1,123 +1,56 @@
-# Bill Runway repair handoff
+# Bill Runway verification handoff — FAIL
 
-Completed work order `bill-runway-repair-2` on 2026-08-28 from candidate
-`752b4eb9183d0876058519c18d49edf99e8c6208`.
+Independent verification work order `bill-runway-verify-2` tested candidate
+`b61a1375263cc08b6d44837723d3170c3ad01758` on 2026-08-28 against
+<https://bill-runway.sociobot.in/>.
 
 ## Outcome
 
-The impossible-date defect is fixed at every local data boundary. A backup or
-legacy IndexedDB record containing `2026-09-31` can no longer be normalised to
-October 1 and alter the runway result. Real leap dates remain accepted.
+**FAIL.** The free offline 60-day runway is production-quality and the deployed
+artifact matches the candidate build exactly, but two acceptance defects remain:
 
-The production Sociobot catalogue still does not contain `bill-runway`, and its
-checkout endpoint still returns HTTP 404. No billing-registration tool or
-registration credential is included in this work order, and repository policy
-forbids changing billing infrastructure from the product repository. The app
-therefore now checks the public product catalogue when Plus is opened and only
-reveals the required Sociobot checkout link for an enabled `bill-runway`
-product. While registration is absent, it clearly says purchases are temporarily
-unavailable instead of exposing a broken purchase. Existing buyers can still
-paste and verify a license. Once the factory registers the product, checkout is
-enabled automatically without another app release.
+- **High:** the live Sociobot catalogue has no `bill-runway` product and the
+  required checkout returns HTTP 404. The repaired UI safely reports purchase
+  unavailability and leaves restore/free features working, but a user cannot
+  buy the advertised $19 one-time 12-month unlock.
+- **Medium:** keyboard focus lands on the fully transparent Import backup file
+  input while its visible label has no focus treatment. Before/focused label
+  screenshots were pixel-identical.
 
-## Repairs
+A low-severity 4 px spacing issue also affects the print/export and
+backup/import mobile action pairs. Full evidence is in
+[`.factory/verification-2.md`](verification-2.md).
 
-- Added strict, timezone-independent Gregorian validation for ISO calendar
-  dates, including century leap-year rules.
-- Applied validation to entry submission, JSON import, paid dates, IndexedDB v1
-  migration, and defensive reads. The database schema is version 2.
-- Added a runtime checkout capability check against the public Sociobot product
-  catalogue. The app never links to an unavailable checkout and still uses only
-  the required Sociobot billing API.
-- Hardened cached-license parsing and the asynchronous license-return path.
-- Restored focus to the originating entry control after dialog dismissal and
-  raised remaining interactive targets to at least 44 CSS pixels.
-- Versioned the service-worker shell as `bill-runway-v5`.
-- Added Azure Static Web Apps configuration for CSP, Permissions-Policy,
-  `nosniff`, referrer policy, service-worker caching, and the correct web
-  manifest MIME type.
-
-## Verification evidence
-
-The exact work-order clean command was run from the final source:
-
-```sh
-npm ci && npm test && npm run build
-```
-
-- `npm ci`: passed; 65 packages installed and 0 vulnerabilities reported.
-- Vitest: **6/6 passed**. Coverage includes decimal-safe parsing, recurrence,
-  runway ordering, paid occurrences, `2026-09-31`, leap years, and invalid paid
-  dates.
-- Playwright 1.58.2: **12/12 passed**. Coverage includes the full plan → gap →
-  persistence → paid flow; offline reload; impossible-date import rejection;
-  real IndexedDB v1→v2 cleanup; valid leap-date import and backup download;
-  Escape/focus return; absent and registered checkout states; license return,
-  URL stripping, verification, and 12-month unlock; standalone privacy/terms;
-  390×844 overflow and keyboard skip link; and light/dark axe WCAG A/AA scans.
-- `npm run build`: strict TypeScript and Vite passed. `dist/index.html` is 46,880
-  bytes (14,695 bytes gzip); initial JS and CSS are inlined and remain far below
-  the 200 KB / 50 KB budgets. Total Lighthouse transfer was 133 KiB. Hero WebP
-  files are 26,964 and 78,070 bytes; no fonts are downloaded.
-- Factory `verify-url.sh` against the production preview passed in 522 ms with
-  no console errors: correct title/lang, exactly one h1 and main, no missing alt
-  text, and no unnamed buttons.
-- Lighthouse 13 mobile: **Performance 99, Accessibility 100, Best Practices
-  100, SEO 100**; FCP 0.9 s, LCP 1.8 s, TBT 120 ms, CLS 0.
-- Desktop 1440×1000 and mobile 390×844 screenshots were reviewed. There was no
-  horizontal overflow, and a computed target audit found no visible control
-  under 44×44 CSS px.
-- A real service-worker update was exercised against an isolated production
-  build by changing the cache version and calling `registration.update()`. The
-  app announced `An update is ready. Reload to use it.` with no console errors.
-- Privacy scan found no analytics, trackers, CDN fonts, or third-party runtime
-  scripts. First load and standalone legal routes make no external requests;
-  the billing catalogue is contacted only when the user opens Plus.
-- Before deployment, local SHA-256 values were:
-  - `dist/index.html`: `414a4c26d4e2383119c3aedaf87f1cb3301a0bcce8ddd58a3539acb6f80c5252`
-  - `dist/sw.js`: `afad9ecb81227be6c5208c751eecdae1355ec4e14326576c46b897af2bd3084e`
-
-## Deployment and live verification
-
-- Commit `a76ec16` was pushed to `origin/main`, then `dist/` was deployed with
-  the work-order static deployment script to
-  <https://bill-runway.sociobot.in>.
-- Factory `verify-url.sh` passed against the live URL in 633 ms with no console
-  errors and the expected title, English language, one h1, main landmark, image
-  alternatives, and button names.
-- Live/local SHA-256 identity matches exactly for `index.html`, `sw.js`,
-  `manifest.webmanifest`, `privacy/index.html`, and `terms/index.html`. The live
-  index and worker hashes are the values above.
-- Root, `/privacy`, `/terms`, `/sw.js`, `/manifest.webmanifest`, and
-  `/offline.html` all return HTTP 200. The manifest now serves as
-  `application/manifest+json`; CSP, Permissions-Policy, HSTS, referrer policy,
-  and `nosniff` are present.
-- A fresh 390×844 live Chromium run had one h1, zero horizontal overflow, no
-  console/page errors, and no external requests on first load. After an online
-  visit it reloaded offline and displayed `Offline · your plan still works on
-  this device`.
-- Opening the live 12-month option queried the public catalogue, reported
-  `Plus purchases are temporarily unavailable`, kept the buy link hidden, and
-  left license restore enabled. The catalogue contains 22 products but not
-  `bill-runway`; the direct checkout still returns the independently reported
-  404.
-
-## Run and deploy
+## Verification summary
 
 ```sh
 npm ci
+npm audit --audit-level=high
 npm test
 npm run build
-/opt/fleet/lib/deploy-static.sh bill-runway /work/repo/dist
 ```
 
-The artifact remains an offline PWA and the deployable static root is `dist/`.
+These passed with 0 vulnerabilities, 6/6 Vitest tests, 12/12 Playwright tests,
+strict TypeScript, and a production `dist/` build. No lint command exists.
+Independent preview/live journeys covered representative planning, invalid
+input and recovery, persistence, paid/undo, confirmed/cancelled deletion,
+CSV/JSON ownership, storage failure, keyboard, 390 px mobile, 200%-zoom
+equivalent layout, light/dark axe, reduced motion, print, privacy, response
+policies, offline reload, and service-worker update notification. There were no
+console/page errors or failed first-party requests.
 
-## Known operational dependency
+Factory URL verification passed locally and live. Lighthouse 13 mobile scored
+95 performance, 100 accessibility, 100 best practices, and 100 SEO (LCP 1.5 s,
+CLS 0, 120 KiB transfer). JS, CSS, font, and hero budgets pass. Root, worker,
+manifest, privacy, and terms hashes match the local candidate build exactly.
 
-Factory billing registration remains absent as of this repair. A factory
-operator must register/enable the production `bill-runway` one-time $19 product
-and verify a real hosted checkout/payment. This is not stored or configurable in
-this repository. Until then, the production UI safely withholds the buy link;
-the complete free 60-day planner, accessibility, data export/import, and offline
-operation remain available.
+## Next steps
+
+1. Factory operations must register/enable the production `bill-runway`
+   one-time product and validate a real purchase through restore/revocation.
+2. Product code must expose visible focus on the Import backup label and should
+   raise the two 4 px mobile action gaps to 8 px.
+3. Rebuild, deploy, and independently re-verify. Until then, the safe and useful
+   free planner remains available, including offline use and data export.
+
+No product code or deployment infrastructure was changed by this verification.
