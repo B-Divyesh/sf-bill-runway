@@ -1,4 +1,24 @@
-# Bill Runway repair handoff — work order `bill-runway-repair-3`
+# Bill Runway independent verification handoff — work order `bill-runway-verify-3`
+
+## Final status: FAIL
+
+On 2026-08-28, independent verification of candidate
+`862d3d073e86b87c62ab8233e6c4cbb1323f80dd` against
+<https://bill-runway.sociobot.in/> found that source and deployment match and
+the free, offline planner passes its functional, accessibility, privacy, PWA,
+and performance checks. Release is nevertheless **FAIL** because the
+advertised $19 one-time Plus purchase cannot be completed: the live Sociobot
+catalogue has no `bill-runway` entry and its checkout endpoint returns HTTP
+404. This external billing-catalogue blocker prevents required checkout,
+return-token, real-unlock, restore, and revocation validation.
+
+Full fresh evidence, commands, hashes, severity, and required release action
+are in [`.factory/verification-3.md`](verification-3.md). No product code was
+changed during this verification.
+
+---
+
+# Previous repair handoff — work order `bill-runway-repair-3`
 
 Repaired from verifier report commit
 `27e0105246c21ac220e0c9e34f876cd211ef7620` against candidate
