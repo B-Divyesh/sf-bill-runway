@@ -80,7 +80,7 @@ main { overflow:hidden; }
 .clear-callout > span { background:var(--success); }
 .runway-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(290px,.7fr); gap:70px; align-items:start; }
 .subheading { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
-.subheading > div { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+.subheading > div { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
 .timeline-list { list-style:none; margin:0; padding:0; position:relative; }
 .timeline-list::before { content:""; position:absolute; left:94px; top:38px; bottom:25px; width:2px; background:color-mix(in srgb,var(--accent) 45%,var(--surface-strong)); }
 .timeline-event { display:grid; grid-template-columns:77px 16px 1fr; column-gap:10px; min-height:106px; position:relative; }
@@ -117,9 +117,13 @@ main { overflow:hidden; }
 .mini-empty { padding:20px 0; font-size:.9rem; }
 .data-tools { padding-top:18px; border-top:1px solid color-mix(in srgb,var(--text) 18%,transparent); }
 .data-tools h3 { margin-bottom:3px; }
-.data-tools > div { display:flex; flex-wrap:wrap; gap:4px; }
+.data-tools > div { display:flex; flex-wrap:wrap; gap:8px; }
 .file-button { position:relative; cursor:pointer; }
 .file-button input { position:absolute; width:1px; height:1px; opacity:0; }
+/* The native file input remains keyboard-operable while the label supplies
+   the visible target. Mirror focus onto that target so keyboard users never
+   lose their place on an otherwise transparent control. */
+.file-button:focus-within { outline:3px solid var(--focus); outline-offset:3px; }
 
 .plus-band { width:min(1260px,calc(100% - 48px)); margin:0 auto 90px; padding:46px clamp(24px,5vw,70px); background:var(--accent); color:var(--accent-contrast); border-radius:28px 80px 28px 28px; display:flex; justify-content:space-between; align-items:center; gap:40px; }
 .plus-band .eyebrow { color:inherit; opacity:1; }

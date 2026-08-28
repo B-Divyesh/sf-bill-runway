@@ -134,6 +134,36 @@ test('keeps the planner within a 390px viewport and exposes the keyboard skip li
   await expect(page.locator('.skip-link')).toBeFocused();
 });
 
+test('keeps import focus visible and action targets separated on a 390px keyboard journey', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // Reach the real file control through the keyboard, rather than focusing it
+  // programmatically: the visually-hidden input is the element that receives
+  // focus and its visible label must mirror that state.
+  for (let tab = 0; tab < 30; tab += 1) {
+    if (await page.locator('#import-json').evaluate(input => input === document.activeElement)) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(page.locator('#import-json')).toBeFocused();
+  await expect(page.locator('.file-button')).toHaveCSS('outline-style', 'solid');
+  await expect(page.locator('.file-button')).toHaveCSS('outline-width', '3px');
+
+  const gaps = await page.evaluate(() => {
+    const horizontalGap = (first: string, second: string) => {
+      const a = document.querySelector(first)?.getBoundingClientRect();
+      const b = document.querySelector(second)?.getBoundingClientRect();
+      if (!a || !b) throw new Error(`Missing mobile controls: ${first}, ${second}`);
+      return b.left - a.right;
+    };
+    return {
+      printExport: horizontalGap('#print-run', '#export-csv'),
+      backupImport: horizontalGap('#export-json', '.file-button')
+    };
+  });
+  expect(gaps.printExport).toBeGreaterThanOrEqual(8);
+  expect(gaps.backupImport).toBeGreaterThanOrEqual(8);
+});
+
 test('has no automatically detectable serious accessibility issues', async ({ page }) => {
   for (const theme of ['light', 'dark']) {
     await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
