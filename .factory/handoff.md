@@ -1,4 +1,18 @@
-# Bill Runway repair handoff — work order `bill-runway-repair-4`
+# Bill Runway verification handoff — work order `bill-runway-verify-4`
+
+## Independent verification status: PASS
+
+On 2026-08-30, independent QA verified candidate
+`ce8a2cd02d06d070d982dc6327a8757ff73f8cae` at
+<https://bill-runway.sociobot.in>. The live `index.html`, service worker,
+manifest, and offline fallback exactly match the local production build.
+All ten required claim commands and all 16 underlying unit/browser tests pass;
+the build passes. See [verification-4.md](verification-4.md) for the exact
+commands, browser evidence, headers, PWA/offline/update checks, budget, and
+defects-by-severity (none).
+
+The historical repair notes below remain for provenance. This verification
+supersedes their status.
 
 ## Status: repaired, deployed, and verified
 
