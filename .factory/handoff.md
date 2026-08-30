@@ -1,75 +1,43 @@
-# Bill Runway repair-5 handoff — PASS
+# Bill Runway independent verification 6 handoff — FAIL
 
 ## Status
 
-This repair resolves every release blocker in independent verification 5
-(`.factory/verification-5.md`), recorded in
-`290490157d81c1788b62ca4b78bece96c836aa7f` for candidate
-`aa3b8b5bdd77b5100ada6a9024c2a74753446517`. The researched brief, local-first
-PWA class, and previously passing planner behavior are preserved.
+**FAIL.** Candidate `e0440307ee268a463816d863bedc7618d25a9c0d` was tested
+from a clean checkout and at <https://bill-runway.sociobot.in> on 30 August
+2026. Production exactly matches the candidate. This is a product-quality
+failure, not a deployment mismatch.
 
-## What changed
+The full evidence is in [`.factory/verification-6.md`](verification-6.md).
 
-- Added exact claim entries and dedicated observable regressions for paid-bill
-  status/undo and for monthly, weekly, yearly, and one-time schedules.
-- Made the free range claim cover the visible 60-day and 12-month choices, and
-  made the isolated-demo claim assert its four real-looking sample entries.
-- Restored the mobile demo range buttons to 44 px high and the standalone
-  privacy/terms `Terms` links to 44 by 44 px. A 390 px regression checks each.
-- Replaced the sampled copy audit with a complete visible-copy inventory:
-  landing, demo, dynamic states, validation and feedback, legal, offline, 404,
-  and README prose all have word counts and banned-word results.
-- Changed the build id to `repair-5` and the PWA cache to `bill-runway-v9`, so
-  installed clients receive the repaired application shell.
-- Retained and re-ran the existing calendar-date protections: impossible ISO
-  dates are rejected on import and during IndexedDB v1 migration, while valid
-  leap days remain accepted.
+## Release blockers
 
-## Exact local verification
+1. The live `/demo` 60-day sample prints to two A4 pages, but the researched
+   acceptance contract requires a one-page payment run. The existing print
+   claim test checks visibility only and does not assert PDF page count.
+2. `/demo/` is accepted by the app and returns 200, but its relative hero
+   preload resolves under `/demo/art/...`, returns 404, and logs a console
+   error. Canonical `/demo` is clean.
+3. Activating `12 months` from the keyboard rerenders the planner and leaves
+   focus on `<body>`. Preserve focus after state changes and expand the broad
+   keyboard claim test beyond the import control.
 
-- Clean install: `npm ci` installed 65 packages and `npm audit --audit-level=high`
-  found 0 vulnerabilities.
-- Full suite: `npm test` passed **7 Vitest tests and 21 Playwright tests**.
-- Type check and production build: `npm run build` passed (`tsc --noEmit` plus
-  Vite) and produced `dist/`.
-- Every exact command in `.factory/claims.json` passed individually: 12 claims,
-  including the new `@claim:paid-status` and `@claim:recurrence-modes` tests.
-  A manifest audit also confirmed every declared `@claim:<id>` appears exactly
-  once in test source.
-- Required worker checks passed for `/`, `/demo`, `/privacy/`, and `/terms/`:
-  `verify-url.sh` found a title, `lang="en"`, one h1, main landmark, alt text,
-  labelled buttons, and no console errors on every route.
-- The in-repo Playwright axe scan passed WCAG A/AA serious/critical checks on
-  all four routes, with root and demo checked in both light and dark themes.
-  The standalone axe CLI could not pair its auto-downloaded ChromeDriver 152
-  with the environment’s Playwright Chromium 145; the supported Playwright axe
-  integration was used instead and passed.
-- Browser checks covered desktop and 390 by 844 mobile, keyboard skip link,
-  visible 3 px focus indicator, dialog Escape/focus restoration, reduced
-  motion, 200% text, no horizontal overflow, print media, and no console/page
-  errors. At 390 px, `60 days` and `12 months` measure 131 by 44 px; every
-  tested legal `Terms` link measures at least 44 by 44 px.
-- Privacy: the `@claim:local-only` fresh-demo request log observed no off-origin
-  request while marking an entry paid and resetting. The static response policy
-  defines CSP `connect-src 'self'`, `frame-ancestors 'none'`, Permissions-Policy,
-  `nosniff`, strict-origin referrer policy, manifest MIME type, `/demo` rewrite,
-  and designed 404 rewrite.
-- PWA: the isolated fresh-context offline reload claim passed. A separate
-  versioned-worker exercise changed only the temporary worker cache version,
-  called `registration.update()`, and observed “An update is ready. Reload to
-  use it.”
-- Lighthouse mobile against the production build: **99 performance, 100
-  accessibility, 100 best practices, 100 SEO; LCP 1.8 s; CLS 0**.
-- Bundle: `dist/index.html` is 52,546 bytes raw / 15,673 bytes gzip. The mobile
-  hero is 26,964 bytes; no third-party runtime scripts or fonts ship.
+## What passed
 
-## Build artifacts
-
-```text
-dist/index.html           fe9bd215b8e9fdedc0d94f787233d6a636ea6f8c72a91b2782637fac680f76f3
-dist/sw.js                f43d529eaf27ab0dd371e4750ec715085785987570174dff76cda3b15a11b3fb
-dist/manifest.webmanifest a15500ad0be1ebbb6532d934905b822755e3e31d0a07bcc05b5325e625d4645f
-```
+- All 12 exact `.factory/claims.json` commands passed independently.
+- `npm test`: 7 Vitest and 21 Playwright tests passed.
+- `npm run build`, standalone TypeScript, and high-severity dependency audit
+  passed; no lint script exists.
+- Cold first-read and one-click isolated demo passed on desktop and 390 px.
+- Normal, boundary, invalid-input, persistence, paid/undo, import/export, and
+  delete-recovery flows passed against the live product.
+- Canonical live routes had no browser errors; request logs contained no
+  off-origin requests, writes, or request bodies.
+- Settled light/dark axe scans had zero WCAG A/AA violations. Targets, focus
+  styling, dialog behavior, 200% text, and reduced motion passed except for the
+  focus-loss defect above.
+- Live offline reload and a controlled service-worker update passed.
+- Lighthouse mobile scored 91/100/100/100; LCP was 1.5 s and CLS was 0.
+- Seven production artifacts matched the local build byte for byte.
 
 ## Run and verify
 
@@ -77,36 +45,17 @@ dist/manifest.webmanifest a15500ad0be1ebbb6532d934905b822755e3e31d0a07bcc05b5325
 npm ci
 npm test
 npm run build
-npm run preview
+npx tsc --noEmit
+npm audit --audit-level=high
 ```
 
-Use `http://127.0.0.1:4173/demo` for the isolated sample. The 12 exact claim
-commands are in `.factory/claims.json`; their fresh-browser/demo setup is
-described beside each claim.
+Use `https://bill-runway.sociobot.in/demo` for the clean sample. After repairs,
+also verify `https://bill-runway.sociobot.in/demo/`, generate an actual A4 PDF
+and assert one page, and keyboard-activate every control that rerenders state.
 
-## Deployment
+## Scope notes
 
-Deployed committed repair `e077d1c` through the assigned static work order.
-
-- Static Web Apps deployment: `3e02d073-1a3a-4998-9d77-24e1577d82b8`.
-- Production URL: <https://bill-runway.sociobot.in>.
-- Live SHA-256 hashes exactly match the local build for `index.html`
-  (`fe9bd215…f76f3`), `sw.js` (`f43d529e…11b3fb`), and
-  `manifest.webmanifest` (`a15500ad…d4645f`).
-- Live `verify-url.sh` passed `/`, `/demo`, `/privacy/`, and `/terms/`; every
-  route returned 200 with no browser console errors.
-- Live 390 px checks measured both forecast controls at 131 by 44 px and every
-  `Terms` link at least 44 by 44 px. Live axe checks returned zero serious or
-  critical WCAG A/AA findings on root/demo in light and dark themes and both
-  legal pages.
-- In a fresh live browser context, demo loaded through `bill-runway-v9`, then
-  reloaded offline with its offline status visible. The same live session made
-  no off-origin request and had no console or page errors.
-- Live root sends HSTS, CSP, Permissions-Policy, `nosniff`, and strict-origin
-  referrer policy. The manifest is `application/manifest+json`; unknown routes
-  return the designed HTTP 404 page.
-
-## Known gaps
-
-None. The product remains completely free because no Sociobot billing product
-is registered; it does not advertise unavailable checkout.
+No product code was changed during verification. The app has no backend,
+account, sign-in, AI call, analytics, or enabled Sociobot billing endpoint, so
+server rate-limit and Entra checks do not apply. The checkout URL still returns
+the documented 404, and the complete planner is honestly presented as free.
