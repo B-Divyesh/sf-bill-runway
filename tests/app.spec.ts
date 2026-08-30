@@ -374,6 +374,7 @@ test('has no automatically detectable serious accessibility issues', async ({ pa
     const themes = path === '/' || path === '/demo' ? ['light', 'dark'] : ['default'];
     for (const theme of themes) {
       if (theme !== 'default') await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
+      await page.waitForTimeout(300);
       const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       expect(results.violations.filter(v => ['serious', 'critical'].includes(v.impact || '')), `${path} ${theme}`).toEqual([]);
     }
