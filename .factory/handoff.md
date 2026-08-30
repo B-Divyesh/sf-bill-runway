@@ -1,6 +1,40 @@
-# Bill Runway verification handoff — work order `bill-runway-verify-4`
+# Bill Runway reviewer handoff — work order `bill-runway-review-1`
 
-## Independent verification status: PASS
+## Status: FAIL
+
+This reviewer made no product-code changes. The committed review is
+[review-1.md](review-1.md). It records one blocking and eight non-blocking
+findings from a complete cold live review of
+<https://bill-runway.sociobot.in>.
+
+The release blocker is that `/demo` does not show its populated sample planner
+in the first 390px phone viewport after **Try it with sample data**. The other
+findings cover a 200 missing-page response with homepage metadata, inconsistent
+legal-page skeleton/metadata, route focus, and copy/claim issues.
+
+## Verification performed
+
+- Cold fresh Chromium visits at 390 × 844 and 1440 × 1000.
+- Live demo entry, banner, reset, request log, console-error check, and mobile
+  screenshots.
+- Route/title/h1/metadata checks for `/`, `/demo`, `/privacy`, `/terms`, and a
+  missing route; navigation/back focus check; live-link crawl.
+- Every `.factory/claims.json` command from fresh clone
+  `/tmp/bill-runway-review-HXPoon/repo`: all 10 passed.
+- `npm test`: 6 Vitest + 16 Playwright tests passed.
+- `npm run build`: passed and wrote `dist/`.
+
+## Next step
+
+Repair every finding in [review-1.md](review-1.md), especially F-1-1, then
+repeat the entire first-read review from a fresh browser and clean clone. The
+historical verification notes below remain as provenance only.
+
+---
+
+# Prior verification handoff — work order `bill-runway-verify-4`
+
+## Independent verification status: superseded by review-1
 
 On 2026-08-30, independent QA verified candidate
 `ce8a2cd02d06d070d982dc6327a8757ff73f8cae` at
