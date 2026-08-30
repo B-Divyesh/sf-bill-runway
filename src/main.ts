@@ -269,6 +269,11 @@ async function init() {
   isDemo = location.pathname === '/demo' || location.pathname === '/demo/' || url.searchParams.get('demo') === '1';
   configureStorageNamespace(isDemo);
   document.title = isDemo ? 'Demo — Bill Runway' : 'Bill Runway — see cash gaps before bills are due';
+  if (isDemo) {
+    document.querySelector<HTMLLinkElement>('link[rel="canonical"]')!.href = 'https://bill-runway.sociobot.in/demo';
+    document.querySelector<HTMLMetaElement>('meta[property="og:url"]')!.content = 'https://bill-runway.sociobot.in/demo';
+    document.querySelector<HTMLMetaElement>('meta[property="og:title"]')!.content = 'Demo — Bill Runway';
+  }
   try {
     data = await loadData();
     if (isDemo && localStorage.getItem(DEMO_SEEDED_KEY) !== '1') {

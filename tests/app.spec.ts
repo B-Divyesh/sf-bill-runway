@@ -129,6 +129,7 @@ test('@claim:demo-isolation keeps sample changes separate from the real plan', a
 
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
   await expect(page).toHaveURL(/\/demo$/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://bill-runway.sociobot.in/demo');
   await expect(page.getByText('Demo — sample data, nothing is saved to your plan')).toBeVisible();
   await expect(page.getByText('Care plan sample')).toBeVisible();
   await expect(page.getByRole('button', { name: /Electricity/ })).toBeVisible();
