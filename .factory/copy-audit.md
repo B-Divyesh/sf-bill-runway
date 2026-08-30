@@ -1,6 +1,6 @@
 # Bill Runway copy audit
 
-Audited 2026-08-30 after the verification-5 repair. This is the complete
+Audited 2026-08-30 after the verification-6 repair. This is the complete
 sentence inventory for visible product, state, legal, offline, 404, and README
 prose. Repeated header labels, footer text, and standalone/legal SPA fallback
 copy are listed once with every route where they appear. Commands, form labels,
@@ -109,6 +109,7 @@ No audited sentence exceeds 22 words or contains a banned marketing word.
 | README | Finds the first uncovered bill amount. | 6 | Pass |
 | README | Handles monthly, weekly, yearly, and one-time entries. | 7 | Pass |
 | README | Exports the visible upcoming list as CSV. | 7 | Pass |
+| README | Prints the 60-day payment run on one A4 page. | 9 | Pass |
 | README | Imports and exports your plan as JSON. | 7 | Pass |
 | README | Stores plan data in this browser. | 7 | Pass |
 | README | Offers an isolated sample at /demo. | 7 | Pass |

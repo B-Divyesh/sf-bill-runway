@@ -6,7 +6,7 @@ import type { AppData, Entry, EntryKind, Occurrence, Recurrence, Settings } from
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const DEMO_SEEDED_KEY = 'demo:bill-runway:seeded';
-const BUILD_ID = 'repair-5';
+const BUILD_ID = 'repair-6';
 
 let data: AppData;
 let days = 60;
@@ -55,6 +55,17 @@ function setPageMetadata(title: string, description: string, canonical: string, 
 
 function focusRouteHeading() {
   window.setTimeout(() => document.querySelector<HTMLElement>('main h1')?.focus(), 0);
+}
+
+function activeControlSelector(): string | null {
+  const element = document.activeElement;
+  if (!(element instanceof HTMLElement) || !app.contains(element)) return null;
+  if (element.id) return `#${CSS.escape(element.id)}`;
+  const stableAttributes = ['data-days', 'data-paid', 'data-date', 'data-edit', 'data-open']
+    .filter(name => element.hasAttribute(name))
+    .map(name => `[${name}="${CSS.escape(element.getAttribute(name)!)}"]`)
+    .join('');
+  return stableAttributes ? `${element.tagName.toLowerCase()}${stableAttributes}` : null;
 }
 
 function button(label: string, cls = 'button secondary', attrs = '') {
@@ -138,6 +149,7 @@ function timeline(occurrences: Occurrence[]): string {
 }
 
 function renderPlanner() {
+  const focusedControl = activeControlSelector();
   const occurrences = buildRunway(data.entries, data.settings.balanceCents, todayISO(), days);
   const lowest = occurrences.reduce((min, o) => Math.min(min, o.balanceAfter), data.settings.balanceCents);
   const firstGap = occurrences.find(o => o.uncovered > 0);
@@ -156,6 +168,7 @@ function renderPlanner() {
     ${isDemo ? '' : '<section class="info-sections" aria-label="About Bill Runway"><div><p class="eyebrow">How it works</p><h2>Turn due dates into a payment run.</h2><ol><li><strong>Add what is available.</strong><span>Set the money you can use today.</span></li><li><strong>Add bills and income.</strong><span>Choose dates and repeat rules.</span></li><li><strong>Check the first gap.</strong><span>Print or export the payment run.</span></li></ol></div><div class="limits"><p class="eyebrow">What it does not do</p><h2>No bank connections or payments.</h2><p>Bill Runway does not connect to banks or move money. It uses only the planning details you enter.</p><a href="/privacy">Read the privacy notice</a></div></section>'}
   </main>${footer()}${renderEntryDialog()}${renderSettingsDialog()}`;
   bindEvents();
+  if (focusedControl) document.querySelector<HTMLElement>(focusedControl)?.focus({ preventScroll: true });
 }
 
 function bindEvents() {
@@ -212,7 +225,9 @@ async function submitEntry(event: Event) {
 async function removeCurrentEntry() {
   const entry = data.entries.find(e => e.id === editingId);
   if (!entry || !confirm(`Delete “${entry.name}” and all of its future occurrences?`)) return;
-  await deleteEntry(entry.id); data.entries = data.entries.filter(e => e.id !== entry.id); renderPlanner(); announce(`${entry.name} deleted.`);
+  await deleteEntry(entry.id); data.entries = data.entries.filter(e => e.id !== entry.id); renderPlanner();
+  document.querySelector<HTMLElement>(`[data-open="${entry.kind}"]`)?.focus({ preventScroll: true });
+  announce(`${entry.name} deleted.`);
 }
 
 async function submitSettings(event: Event) {
@@ -220,7 +235,9 @@ async function submitSettings(event: Event) {
   if (balance === null) { error.textContent = 'Enter money available with no more than two decimal places.'; return; }
   const planName = String(fd.get('planName')).trim(); if (!planName) { error.textContent = 'Give this plan a short name.'; return; }
   const settings: Settings = { balanceCents: balance, currency: String(fd.get('currency')) as Settings['currency'], planName, updatedAt: new Date().toISOString() };
-  await saveSettings(settings); data.settings = settings; renderPlanner(); announce('Plan settings saved.');
+  await saveSettings(settings); data.settings = settings; renderPlanner();
+  document.querySelector<HTMLElement>('#open-settings')?.focus({ preventScroll: true });
+  announce('Plan settings saved.');
 }
 
 async function togglePaid(id: string, date: string) {
@@ -275,7 +292,7 @@ async function startForReal() {
   location.assign('/');
 }
 
-async function installApp() { if (installPrompt) { await installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; renderPlanner(); } }
+async function installApp() { if (installPrompt) { await installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; renderPlanner(); document.querySelector<HTMLElement>('#open-settings')?.focus({ preventScroll: true }); } }
 
 async function init() {
   const returnedWithHistory = performance.getEntriesByType('navigation').some(entry => (entry as PerformanceNavigationTiming).type === 'back_forward');

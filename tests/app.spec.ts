@@ -270,8 +270,36 @@ test('opens the isolated sample directly with the demo query path', async ({ pag
   expect(await page.evaluate(async () => (await indexedDB.databases()).some(database => database.name === 'demo:bill-runway'))).toBe(true);
 });
 
-test('@claim:keyboard-controls keeps import focus visible and action targets separated on a 390px keyboard journey', async ({ page }) => {
+test('@claim:keyboard-controls preserves focus through planner changes and keeps mobile controls clear', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+
+  const twelveMonths = page.getByRole('button', { name: '12 months' });
+  await twelveMonths.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'The next 365 days' })).toBeVisible();
+  await expect(twelveMonths).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Print payment run' })).toBeFocused();
+
+  await page.goto('/demo');
+  const paidToggle = page.getByRole('button', { name: 'Mark paid' }).first();
+  await paidToggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Undo paid' }).first()).toBeFocused();
+
+  const resetDemo = page.getByRole('button', { name: 'Reset demo' });
+  await resetDemo.focus();
+  await page.keyboard.press('Space');
+  await expect(resetDemo).toBeFocused();
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Plan settings' }).click();
+  const saveSettings = page.getByRole('button', { name: 'Save settings' });
+  await saveSettings.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Plan settings' })).toBeFocused();
+
+  await page.goto('/');
 
   // Reach the real file control through the keyboard, rather than focusing it
   // programmatically: the visually-hidden input is the element that receives
@@ -300,14 +328,44 @@ test('@claim:keyboard-controls keeps import focus visible and action targets sep
   expect(gaps.backupImport).toBeGreaterThanOrEqual(8);
 });
 
-test('@claim:print-layout keeps the payment run and removes controls in print media', async ({ page }) => {
+test('@claim:print-layout prints the sample 60-day payment run on one A4 page', async ({ page }) => {
   await page.goto('/demo');
+  await expect(page.locator('.timeline-event')).toHaveCount(7);
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByRole('heading', { name: 'Payment run' })).toBeVisible();
   await expect(page.locator('.timeline-event').first()).toBeVisible();
   await expect(page.locator('.hero')).toBeHidden();
   await expect(page.locator('.waypoints')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Mark paid' }).first()).toBeHidden();
+  const pdf = await page.pdf({ format: 'A4', printBackground: true });
+  const pageObjects = pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) ?? [];
+  expect(pageObjects).toHaveLength(1);
+});
+
+test('loads both demo URL forms without path-relative asset requests or browser errors', async ({ browser }) => {
+  for (const path of ['/demo', '/demo/']) {
+    const context = await browser.newContext({ serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const badResponses: string[] = [];
+    const failedRequests: string[] = [];
+    const consoleErrors: string[] = [];
+    const requestedPaths: string[] = [];
+    page.on('request', request => requestedPaths.push(new URL(request.url()).pathname));
+    page.on('requestfailed', request => failedRequests.push(`${request.url()}: ${request.failure()?.errorText}`));
+    page.on('response', response => { if (response.status() >= 400) badResponses.push(`${response.status()} ${response.url()}`); });
+    page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+
+    await page.goto(path);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Review a sample plan.' })).toBeVisible();
+    await expect(page.locator('link[rel="preload"]')).toHaveAttribute('href', '/art/runway-hero-1200.webp');
+    await expect(page.locator('link[rel="preload"]')).toHaveAttribute('imagesrcset', '/art/runway-hero-720.webp 720w, /art/runway-hero-1200.webp 1200w');
+    expect(requestedPaths.filter(requestPath => requestPath.startsWith('/demo/art/'))).toEqual([]);
+    expect(badResponses).toEqual([]);
+    expect(failedRequests).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+    await context.close();
+  }
 });
 
 test('has no automatically detectable serious accessibility issues', async ({ page }) => {

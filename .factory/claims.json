@@ -74,13 +74,13 @@
     "claim": "Planner controls remain usable with a keyboard and show focus.",
     "where": "README",
     "test": "npx playwright test --grep @claim:keyboard-controls",
-    "sandbox": "fresh 390px browser; Tab to real import input; assert visible 3px label focus ring and target spacing"
+    "sandbox": "fresh 390px browser; activate range, paid-status, demo-reset, and settings-save controls by keyboard; assert focus survives each rerender; Tab to real import input; assert visible 3px focus ring and target spacing"
   },
   {
     "id": "print-layout",
-    "claim": "Formats the payment run for printing.",
+    "claim": "Formats the 60-day payment run on one A4 page for printing.",
     "where": "planner, README",
     "test": "npx playwright test --grep @claim:print-layout",
-    "sandbox": "fresh /demo with print media; assert payment run remains visible while interactive and marketing regions are hidden"
+    "sandbox": "fresh /demo with seven visible sample events; generate a Chromium A4 PDF with backgrounds; assert exactly one PDF page while interactive and marketing regions are hidden"
   }
 ]

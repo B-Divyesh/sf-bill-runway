@@ -278,7 +278,7 @@ textarea { resize:vertical; }
 
 @media print {
   :root { --bg:#fff; --text:#111; --muted:#444; --surface:#fff; }
-  .site-header nav,.hero,.waypoints,.info-sections,footer,.range-switch,.gap-callout,.clear-callout,.paid-toggle,.subheading .button,.offline-bar,.demo-banner { display:none!important; }
+  .site-header nav,.hero,.demo-heading,.waypoints,.info-sections,footer,.range-switch,.gap-callout,.clear-callout,.paid-toggle,.subheading .button,.offline-bar,.demo-banner { display:none!important; }
   .site-header { min-height:50px; width:100%; }
   .runway-shell { width:100%; margin:0; }
   .runway-grid { display:block; }

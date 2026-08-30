@@ -14,6 +14,7 @@ Live product: [bill-runway.sociobot.in](https://bill-runway.sociobot.in)
 - Finds the first uncovered bill amount.
 - Handles monthly, weekly, yearly, and one-time entries.
 - Exports the visible upcoming list as CSV.
+- Prints the 60-day payment run on one A4 page.
 - Imports and exports your plan as JSON.
 - Stores plan data in this browser.
 - Works offline after the first visit.
