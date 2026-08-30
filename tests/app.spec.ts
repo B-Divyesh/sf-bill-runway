@@ -415,7 +415,7 @@ test('loads both demo URL forms without path-relative asset requests or browser 
 });
 
 test('has no automatically detectable serious accessibility issues', async ({ page }) => {
-  for (const path of ['/', '/demo', '/privacy/', '/terms/']) {
+  for (const path of ['/', '/demo', '/privacy/', '/terms/', '/404.html']) {
     await page.goto(path);
     const themes = path === '/' || path === '/demo' ? ['light', 'dark'] : ['default'];
     for (const theme of themes) {
