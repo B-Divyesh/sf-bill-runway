@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+declare global {
+  interface Window { __openedDatabases?: string[]; }
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.title.includes('migrates stored')) return;
   await page.goto('/');
@@ -155,7 +159,39 @@ test('@claim:demo-isolation keeps sample changes separate from the real plan', a
   expect(await page.evaluate(async () => (await indexedDB.databases()).some(database => database.name === 'demo:bill-runway'))).toBe(false);
 });
 
-test('@claim:csv-export exports one CSV row per visible payment-run item', async ({ page }) => {
+test('@claim:reset-demo restores the original sample without opening the real plan', async ({ page }) => {
+  await page.getByRole('button', { name: 'Plan settings' }).click();
+  await page.getByLabel('Plan name').fill('Private household plan');
+  await page.getByRole('button', { name: 'Save settings' }).click();
+
+  await page.addInitScript(() => {
+    const opened: string[] = [];
+    const open = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function(name: string, version?: number) {
+      opened.push(String(name));
+      return version === undefined ? open.call(this, name) : open.call(this, name, version);
+    };
+    Object.defineProperty(window, '__openedDatabases', { value: opened });
+  });
+  await page.goto('/demo');
+  const electricity = page.locator('.timeline-event', { hasText: 'Electricity' }).first();
+  await electricity.getByRole('button', { name: 'Mark paid' }).click();
+  await expect(electricity.getByRole('button', { name: 'Undo paid' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.locator('#announcer')).toContainText('Demo reset to the original sample.');
+  await expect(page.locator('.summary-strip strong').first()).toHaveText('$900.00');
+  await expect(page.locator('.entry-edit')).toHaveCount(4);
+  for (const name of ['Electricity', 'Rent', 'Caregiver deposit', 'Pharmacy']) {
+    await expect(page.getByRole('button', { name: new RegExp(name) })).toBeVisible();
+  }
+  await expect(page.locator('.timeline-event', { hasText: 'Electricity' }).first().getByRole('button', { name: 'Mark paid' })).toBeVisible();
+  expect(await page.evaluate(() => window.__openedDatabases ?? [])).toEqual(expect.arrayContaining(['demo:bill-runway']));
+  expect(await page.evaluate(() => (window.__openedDatabases ?? []).every(name => name === 'demo:bill-runway'))).toBe(true);
+
+});
+
+test('@claim:csv-export exports one CSV row per visible upcoming-list item', async ({ page }) => {
   await page.addInitScript(() => {
     const NativeBlob = Blob;
     class CapturedBlob extends NativeBlob {
@@ -169,8 +205,8 @@ test('@claim:csv-export exports one CSV row per visible payment-run item', async
   await page.goto('/demo');
   const eventCount = await page.locator('.timeline-event').count();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export CSV' }).click();
-  await downloadPromise;
+  await page.getByRole('button', { name: 'Export upcoming list as CSV' }).click();
+  expect((await downloadPromise).suggestedFilename()).toMatch(/^upcoming-list-\d{4}-\d{2}-\d{2}\.csv$/);
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('captured-download'))).not.toBeNull();
   const csv = await page.evaluate(() => sessionStorage.getItem('captured-download')) as string;
   const rows = csv.trim().split('\n');
@@ -262,6 +298,16 @@ test('uses the common legal skeleton and moves focus to the new route heading', 
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 });
 
+test('ships the common navigation and legal footer on the static 404 page', async ({ page }) => {
+  await page.goto('/404.html');
+  await expect(page).toHaveTitle('Page not found — Bill Runway');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Demo' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Legal' }).getByRole('link', { name: 'Privacy' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open Bill Runway' })).toBeVisible();
+});
+
 test('opens the isolated sample directly with the demo query path', async ({ page }) => {
   await page.goto('/?demo=1');
   await expect(page.getByText('Demo — sample data, nothing is saved to your plan')).toBeVisible();
@@ -279,7 +325,7 @@ test('@claim:keyboard-controls preserves focus through planner changes and keeps
   await expect(page.getByRole('heading', { name: 'The next 365 days' })).toBeVisible();
   await expect(twelveMonths).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Print payment run' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Print upcoming list' })).toBeFocused();
 
   await page.goto('/demo');
   const paidToggle = page.getByRole('button', { name: 'Mark paid' }).first();
@@ -328,11 +374,11 @@ test('@claim:keyboard-controls preserves focus through planner changes and keeps
   expect(gaps.backupImport).toBeGreaterThanOrEqual(8);
 });
 
-test('@claim:print-layout prints the sample 60-day payment run on one A4 page', async ({ page }) => {
+test('@claim:print-layout prints the sample 60-day upcoming list on one A4 page', async ({ page }) => {
   await page.goto('/demo');
   await expect(page.locator('.timeline-event')).toHaveCount(7);
   await page.emulateMedia({ media: 'print' });
-  await expect(page.getByRole('heading', { name: 'Payment run' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Upcoming bills and income' })).toBeVisible();
   await expect(page.locator('.timeline-event').first()).toBeVisible();
   await expect(page.locator('.hero')).toBeHidden();
   await expect(page.locator('.waypoints')).toBeHidden();

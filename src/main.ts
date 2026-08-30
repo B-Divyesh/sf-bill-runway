@@ -6,7 +6,7 @@ import type { AppData, Entry, EntryKind, Occurrence, Recurrence, Settings } from
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const DEMO_SEEDED_KEY = 'demo:bill-runway:seeded';
-const BUILD_ID = 'repair-6';
+const BUILD_ID = 'polish-2';
 
 let data: AppData;
 let days = 60;
@@ -137,7 +137,7 @@ function entryList(kind: EntryKind): string {
 }
 
 function timeline(occurrences: Occurrence[]): string {
-  if (!occurrences.length) return `<section class="empty-timeline"><h2>No bills or income in this range.</h2><p>Add a bill or expected income to start the payment run.</p>${button('Add your first bill', 'button primary', 'data-open="bill"')}</section>`;
+  if (!occurrences.length) return `<section class="empty-timeline"><h2>No bills or income in this range.</h2><p>Add a bill or expected income to check upcoming bills.</p>${button('Add your first bill', 'button primary', 'data-open="bill"')}</section>`;
   let lastDate = '';
   return `<ol class="timeline-list">${occurrences.map(o => {
     const date = o.date === lastDate ? '' : `<time datetime="${o.date}">${dateLabel(o.date)}${o.date === todayISO() ? ' · Today' : ''}</time>`;
@@ -163,9 +163,9 @@ function renderPlanner() {
     <section class="runway-shell" aria-labelledby="runway-title"><div class="section-heading"><div><p class="eyebrow">${esc(data.settings.planName)}</p><h2 id="runway-title">The next ${days} days</h2></div><div class="range-switch" aria-label="Forecast range"><button class="${days === 60 ? 'active' : ''}" data-days="60" aria-pressed="${days === 60}">60 days</button><button class="${days === 365 ? 'active' : ''}" data-days="365" aria-pressed="${days === 365}">12 months</button></div></div>
     <div class="summary-strip"><div><span>Available now</span><strong>${formatMoney(data.settings.balanceCents, data.settings.currency)}</strong></div><div><span>Bills in range</span><strong>${formatMoney(dueTotal, data.settings.currency)}</strong></div><div class="${lowest < 0 ? 'negative' : ''}"><span>Lowest point</span><strong>${formatMoney(lowest, data.settings.currency)}</strong></div><div class="coverage"><span>Coverage</span><strong>${firstGap ? `Gap on ${dateLabel(firstGap.date)}` : 'All covered'}</strong></div></div>
     ${firstGap ? `<div class="gap-callout" role="status"><span class="gap-icon" aria-hidden="true">!</span><p><strong>${formatMoney(firstGap.uncovered, data.settings.currency)} is uncovered by ${dateLabel(firstGap.date)}.</strong><br>That is the first point where entered bills exceed available money and expected income.</p></div>` : occurrences.length ? `<div class="clear-callout" role="status"><span aria-hidden="true">✓</span><p><strong>All bills are covered.</strong> Your entered money and income cover every bill in this range.</p></div>` : ''}
-    <div class="runway-grid"><section class="timeline" aria-labelledby="timeline-title"><div class="subheading"><h3 id="timeline-title">Payment run</h3><div>${button('Print payment run', 'button ghost', 'id="print-run"')}${button('Export CSV', 'button ghost', 'id="export-csv"')}</div></div>${timeline(occurrences)}</section>
+    <div class="runway-grid"><section class="timeline" aria-labelledby="timeline-title"><div class="subheading"><h3 id="timeline-title">Upcoming bills and income</h3><div>${button('Print upcoming list', 'button ghost', 'id="print-run"')}${button('Export upcoming list as CSV', 'button ghost', 'id="export-csv"')}</div></div>${timeline(occurrences)}</section>
     <aside class="waypoints" aria-label="Plan entries"><section><div class="subheading"><h3>Bills</h3>${button('+ Add', 'button text-button', 'data-open="bill"')}</div>${entryList('bill')}</section><section><div class="subheading"><h3>Expected income</h3>${button('+ Add', 'button text-button', 'data-open="income"')}</div>${entryList('income')}</section><section class="data-tools"><h3>Your data</h3><p>Stored only in this browser.</p><div>${button('Back up data', 'button ghost', 'id="export-json"')}<label class="button ghost file-button">Import backup<input id="import-json" type="file" accept="application/json"></label></div></section></aside></div></section>
-    ${isDemo ? '' : '<section class="info-sections" aria-label="About Bill Runway"><div><p class="eyebrow">How it works</p><h2>Turn due dates into a payment run.</h2><ol><li><strong>Add what is available.</strong><span>Set the money you can use today.</span></li><li><strong>Add bills and income.</strong><span>Choose dates and repeat rules.</span></li><li><strong>Check the first gap.</strong><span>Print or export the payment run.</span></li></ol></div><div class="limits"><p class="eyebrow">What it does not do</p><h2>No bank connections or payments.</h2><p>Bill Runway does not connect to banks or move money. It uses only the planning details you enter.</p><a href="/privacy">Read the privacy notice</a></div></section>'}
+    ${isDemo ? '' : '<section class="info-sections" aria-label="About Bill Runway"><div><p class="eyebrow">How it works</p><h2>Check upcoming bills.</h2><ol><li><strong>Add what is available.</strong><span>Set the money you can use today.</span></li><li><strong>Add bills and income.</strong><span>Choose dates and repeat rules.</span></li><li><strong>Check the first gap.</strong><span>Print or export the upcoming list.</span></li></ol></div><div class="limits"><p class="eyebrow">What it does not do</p><h2>No bank connections or payments.</h2><p>Bill Runway does not connect to banks or move money. It uses only the planning details you enter.</p><a href="/privacy">Read the privacy notice</a></div></section>'}
   </main>${footer()}${renderEntryDialog()}${renderSettingsDialog()}`;
   bindEvents();
   if (focusedControl) document.querySelector<HTMLElement>(focusedControl)?.focus({ preventScroll: true });
@@ -258,7 +258,7 @@ function exportJSON() { download(`bill-runway-${todayISO()}.json`, 'application/
 function exportCSV() {
   const rows = [['Date', 'Type', 'Name', 'Amount', 'Status', 'Balance after']];
   buildRunway(data.entries, data.settings.balanceCents, todayISO(), days).forEach(o => rows.push([o.date, o.entry.kind, o.entry.name, (o.entry.amountCents / 100).toFixed(2), o.paid ? 'Paid' : o.uncovered ? 'Uncovered' : 'Covered', (o.balanceAfter / 100).toFixed(2)]));
-  download(`payment-run-${todayISO()}.csv`, 'text/csv', rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')); announce('Payment run CSV downloaded.');
+  download(`upcoming-list-${todayISO()}.csv`, 'text/csv', rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')); announce('Upcoming list CSV downloaded.');
 }
 
 async function importJSON(event: Event) {
@@ -313,7 +313,7 @@ async function init() {
   configureStorageNamespace(isDemo);
   setPageMetadata(
     isDemo ? 'Demo — Bill Runway' : 'Bill Runway — see cash gaps before bills are due',
-    isDemo ? 'Review a sample payment run with bills, income, and the first cash gap.' : 'Compare upcoming bills with expected income and find the first cash gap.',
+    isDemo ? 'Review a sample upcoming list with bills, income, and the first cash gap.' : 'Compare upcoming bills with expected income and find the first cash gap.',
     isDemo ? 'https://bill-runway.sociobot.in/demo' : 'https://bill-runway.sociobot.in/'
   );
   try {

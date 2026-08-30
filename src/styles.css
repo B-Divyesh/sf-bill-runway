@@ -256,8 +256,9 @@ textarea { resize:vertical; }
   .event-balance span,.event-balance small { display:inline; }
   .paid-toggle { justify-self:start; }
   .subheading { align-items:flex-start; }
-  .timeline > .subheading { flex-direction:column; }
-  .subheading > div .button { padding-inline:8px; }
+  .timeline > .subheading { flex-direction:column; width:100%; }
+  .timeline > .subheading > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:8px; }
+  .timeline > .subheading > div .button { width:100%; min-width:0; padding-inline:8px; text-align:center; }
   .empty-timeline { padding:35px 20px; }
   .waypoints { grid-template-columns:1fr; gap:10px; }
   .waypoints .data-tools { grid-column:auto; }

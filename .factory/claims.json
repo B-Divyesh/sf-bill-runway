@@ -28,8 +28,15 @@
     "sandbox": "fresh browser context; name a real plan; enter demo; assert four named entries; exit; assert the real name remains and the demo database is deleted"
   },
   {
+    "id": "reset-demo",
+    "claim": "Reset demo restores the original sample without reading or writing the real plan.",
+    "where": "demo banner, README, privacy",
+    "test": "npx playwright test --grep @claim:reset-demo",
+    "sandbox": "fresh browser context; create a named real plan; enter /demo with IndexedDB open calls recorded; mark Electricity paid; reset; assert the four original entries, $900.00, and Mark paid return while only demo:bill-runway opened"
+  },
+  {
     "id": "csv-export",
-    "claim": "Exports the visible payment run as CSV.",
+    "claim": "Exports the visible upcoming list as CSV.",
     "where": "planner, README",
     "test": "npx playwright test --grep @claim:csv-export",
     "sandbox": "fresh /demo; capture download; assert header, sample bill, and one row per visible event"
@@ -65,7 +72,7 @@
   {
     "id": "paid-status",
     "claim": "Records paid bills and lets you undo that status.",
-    "where": "README, payment run",
+    "where": "README, upcoming list",
     "test": "npx playwright test --grep @claim:paid-status",
     "sandbox": "fresh browser context; add a bill, mark it paid, reload, then undo and assert the status changes"
   },
@@ -78,7 +85,7 @@
   },
   {
     "id": "print-layout",
-    "claim": "Formats the 60-day payment run on one A4 page for printing.",
+    "claim": "Formats the 60-day upcoming list on one A4 page for printing.",
     "where": "planner, README",
     "test": "npx playwright test --grep @claim:print-layout",
     "sandbox": "fresh /demo with seven visible sample events; generate a Chromium A4 PDF with backgrounds; assert exactly one PDF page while interactive and marketing regions are hidden"

@@ -15,6 +15,6 @@
     { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Open payment run", "short_name": "Payment run", "url": "/?view=runway", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Open upcoming list", "short_name": "Upcoming list", "url": "/?view=runway", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

@@ -1,1 +1,1 @@
-Compare upcoming bills with expected income on this device.
+Compare upcoming bills with expected income before a cash gap.
