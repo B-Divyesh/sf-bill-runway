@@ -38,10 +38,10 @@ An 8 px base rhythm with 4 px half-steps. Reading measure is 68 characters. Cont
 
 - “Add bill” is the primary coral action; “Add income” is secondary ink.
 - Forms open as native dialogs from their source controls and return focus on close.
-- A date-range segmented control switches between 60 days and the licensed 12-month view.
+- A date-range segmented control switches between the 60-day and free 12-month views.
 - Timeline events enter from their date marker and marking paid softly collapses their emphasis.
 - Destructive actions identify the item and require confirmation. Import validates before replacing data.
-- Save, import, install, offline, and license results are announced in a persistent polite live region.
+- Save, import, install, demo, and offline results are announced in a persistent polite live region.
 
 ## Motion
 
@@ -56,3 +56,6 @@ Hero art is an original raster illustration generated for this product, then man
 **Subject:** a long coral causeway across shallow ink-blue tidal flats, tiny ivory paper invoice gates placed along the path, one warm amber sun on the horizon, a subtle gap in the road before the light. **World/materials:** tactile cut-paper editorial set, plaster, folded paper, fine grain, restrained surreal scale. **Light/lens:** soft long morning shadows, elevated three-quarter view, 50 mm editorial still-life lens, ample quiet negative space. **Palette words:** parchment, ink blue, burnt coral, amber, sea-glass green. **Negative list:** no people, hands, text, letters, numbers, logos, bank cards, coins, currency symbols, charts, UI screenshots, watermarks, photoreal brands, generic gradients.
 
 Generated on 2026-08-28 using the factory Azure OpenAI image deployment (`factory-image`) with the prompt above plus “no text, no watermark, no logos”. Generated imagery is original to Bill Runway and disclosed in the footer.
+
+The 1200×630 social preview is a centre crop of that original hero image,
+made locally with ImageMagick on 2026-08-30. No new source imagery was added.

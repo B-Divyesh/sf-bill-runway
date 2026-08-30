@@ -38,7 +38,7 @@ describe('calendar dates', () => {
 });
 
 describe('recurrence', () => {
-  it('clamps month-end dates', () => {
+  it('@claim:recurrence-rules clamps month-end dates', () => {
     expect(datesFor(entry(), '2026-01-01', '2026-04-30')).toEqual(['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30']);
   });
 });

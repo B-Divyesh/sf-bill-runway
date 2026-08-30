@@ -1,13 +1,20 @@
 import type { AppData, Entry, Settings } from './types';
 import { isValidEntry } from './data-validation';
 
-const DB_NAME = 'bill-runway';
+const REAL_DB_NAME = 'bill-runway';
+const DEMO_DB_NAME = 'demo:bill-runway';
 const DB_VERSION = 2;
-const initialSettings: Settings = { balanceCents: 0, currency: 'USD', planName: 'My runway', updatedAt: new Date(0).toISOString() };
+const initialSettings: Settings = { balanceCents: 0, currency: 'USD', planName: 'My plan', updatedAt: new Date(0).toISOString() };
+let dbName = REAL_DB_NAME;
+
+/** Select the isolated demo database before any storage operation runs. */
+export function configureStorageNamespace(demo: boolean): void {
+  dbName = demo ? DEMO_DB_NAME : REAL_DB_NAME;
+}
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(dbName, DB_VERSION);
     request.onupgradeneeded = event => {
       const db = request.result;
       if (!db.objectStoreNames.contains('entries')) db.createObjectStore('entries', { keyPath: 'id' });
@@ -28,6 +35,16 @@ function openDB(): Promise<IDBDatabase> {
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
+  });
+}
+
+/** Discard only the sample workspace. Real plan data is never opened here. */
+export function deleteDemoData(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DEMO_DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('Demo database is still open'));
   });
 }
 

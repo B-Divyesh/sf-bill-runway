@@ -1,23 +1,20 @@
 import './styles.css';
-import { deleteEntry, loadData, replaceData, saveEntry, saveSettings } from './db';
+import { configureStorageNamespace, deleteDemoData, deleteEntry, loadData, replaceData, saveEntry, saveSettings } from './db';
 import { isValidAppData } from './data-validation';
 import { addDays, buildRunway, formatMoney, fromISO, isValidISODate, parseMoney, todayISO } from './money';
 import type { AppData, Entry, EntryKind, Occurrence, Recurrence, Settings } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-const BILLING_BASE = import.meta.env.VITE_BILLING_BASE || 'https://api.sociobot.in/api/v1';
-const LICENSE_KEY = 'sb_license:bill-runway';
-const VERDICT_KEY = 'sb_license_verdict:bill-runway';
+const DEMO_SEEDED_KEY = 'demo:bill-runway:seeded';
+const BUILD_ID = 'repair-4';
 
 let data: AppData;
 let days = 60;
-let isPlus = false;
+let isDemo = false;
 let online = navigator.onLine;
 let installPrompt: BeforeInstallPromptEvent | null = null;
 let editingId: string | null = null;
 let dialogKind: EntryKind = 'bill';
-let checkoutAvailable: boolean | null = null;
-let checkoutCheck: Promise<void> | null = null;
 let entryFocusSelector = '[data-open="bill"]';
 
 interface BeforeInstallPromptEvent extends Event { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }>; }
@@ -41,21 +38,21 @@ function button(label: string, cls = 'button secondary', attrs = '') {
 
 function legalPage(kind: 'privacy' | 'terms'): string {
   const privacy = kind === 'privacy';
-  return `<header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a></header>
+  return `<header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><nav aria-label="Primary"><a href="/demo">Demo</a><a href="/${privacy ? 'terms' : 'privacy'}">${privacy ? 'Terms' : 'Privacy'}</a></nav></header>
   <main id="main" class="legal"><p class="eyebrow">Plain-language ${privacy ? 'privacy' : 'terms'}</p><h1>${privacy ? 'Your plan stays yours.' : 'A planning tool, not advice.'}</h1>
-  ${privacy ? `<p>Bill Runway stores bills, income dates, notes, settings, and paid status in IndexedDB on this device. We do not receive or analyse your plan, and there are no analytics, ad trackers, bank connections, or third-party scripts.</p><h2>Licenses</h2><p>If you buy or verify Plus, your browser contacts Sociobot’s billing API with the license token. The token and last verification result are stored locally. Checkout is hosted by Sociobot/Dodo, the merchant of record; this app never sees payment-card details.</p><h2>Your choices</h2><p>Use “Back up data” to take a JSON copy. Clearing site data removes the local plan and license from this browser. Import only backups you trust.</p>` : `<p>Bill Runway displays forecasts from dates, amounts, and starting money that you enter. It does not connect to financial institutions, move money, guarantee that income arrives, or provide financial, debt, tax, or legal advice. Check each invoice and account before paying.</p><h2>Plus purchase</h2><p>Plus is a one-time $19 license for the features described at checkout. Sociobot/Dodo is the merchant of record and handles payment and refunds. A refund revokes the associated license. Availability of the free planner and data export is not conditional on purchase.</p><h2>Warranty</h2><p>The software is provided “as is” without warranty. You remain responsible for entered data, backups, and payment decisions. These terms are governed by applicable law and do not limit rights that cannot legally be limited.</p>`}
-  <p class="legal-date">Effective 28 August 2026 · <a href="/">Return to Bill Runway</a></p></main>${footer()}`;
+  ${privacy ? `<p>Bill Runway stores bills, income dates, notes, settings, and paid status in IndexedDB on this device. We do not receive or analyse your plan. The app has no analytics, ad trackers, bank connections, or third-party scripts.</p><h2>Demo data</h2><p>The demo uses a separate browser database. Resetting or leaving through “Start for real” deletes that sample workspace without reading your real plan.</p><h2>Your choices</h2><p>Use “Back up data” to take a JSON copy. Clearing site data removes the local plan from this browser. Import only backups you trust.</p>` : `<p>Bill Runway displays forecasts from dates, amounts, and starting money that you enter. It does not connect to financial institutions or move money. It does not guarantee income or provide financial, debt, tax, or legal advice. Check each invoice and account before paying.</p><h2>Price</h2><p>The complete planner, including its 12-month view, is free. There is no checkout, account, or subscription.</p><h2>Warranty</h2><p>The software is provided “as is” without warranty. You remain responsible for entered data, backups, and payment decisions. These terms are governed by applicable law and do not limit rights that cannot legally be limited.</p>`}
+  <p class="legal-date">Effective 30 August 2026 · <a href="/">Return to Bill Runway</a></p></main>${footer()}`;
 }
 
 function footer() {
-  return `<footer><p>Private by design. No bank connection, ads, or tracking.</p><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav><p class="art-credit">Original AI-assisted cut-paper artwork, made for Bill Runway.</p></footer>`;
+  return `<footer><p>Plan bills against expected income on this device.</p><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav><p class="art-credit">Original AI-assisted cut-paper artwork, made for Bill Runway. Built by Param Factory · ${BUILD_ID}</p></footer>`;
 }
 
 function renderEntryDialog(): string {
   const entry = editingId ? data.entries.find(item => item.id === editingId) : undefined;
   const kind = entry?.kind ?? dialogKind;
   return `<dialog id="entry-dialog" aria-labelledby="dialog-title"><form id="entry-form" method="dialog" novalidate>
-    <div class="dialog-heading"><div><p class="eyebrow">${entry ? 'Update waypoint' : 'New waypoint'}</p><h2 id="dialog-title">${entry ? 'Edit' : 'Add'} ${kind}</h2></div><button class="icon-button close-dialog" type="button" aria-label="Close dialog">×</button></div>
+    <div class="dialog-heading"><div><p class="eyebrow">${entry ? 'Update entry' : 'New entry'}</p><h2 id="dialog-title">${entry ? 'Edit' : 'Add'} ${kind}</h2></div><button class="icon-button close-dialog" type="button" aria-label="Close dialog">×</button></div>
     <input type="hidden" name="kind" value="${kind}">
     <label>Name <input name="name" required maxlength="60" value="${esc(entry?.name ?? '')}" autocomplete="off"></label>
     <div class="field-row"><label>Amount <span class="input-prefix"><span aria-hidden="true">${currencySymbol(data.settings.currency)}</span><input name="amount" inputmode="decimal" required value="${entry ? (entry.amountCents / 100).toFixed(2) : ''}"></span></label><label>${kind === 'bill' ? 'Due' : 'Expected'} date <input name="date" type="date" required value="${entry?.firstDate ?? todayISO()}"></label></div>
@@ -70,6 +67,23 @@ function currencySymbol(currency: string) {
   return { USD: '$', GBP: '£', EUR: '€', INR: '₹', CAD: 'C$', AUD: 'A$' }[currency] ?? '$';
 }
 
+function sampleData(): AppData {
+  const now = new Date().toISOString();
+  const sampleEntry = (id: string, kind: EntryKind, name: string, amountCents: number, offset: number, recurrence: Recurrence, note: string): Entry => ({
+    id, kind, name, amountCents, firstDate: addDays(todayISO(), offset), recurrence, note, paidDates: [], createdAt: now, updatedAt: now
+  });
+  return {
+    version: 1,
+    settings: { balanceCents: 90000, currency: 'USD', planName: 'Care plan sample', updatedAt: now },
+    entries: [
+      sampleEntry('demo-electricity', 'bill', 'Electricity', 14680, 3, 'monthly', 'Average statement'),
+      sampleEntry('demo-rent', 'bill', 'Rent', 120000, 8, 'monthly', 'Due before deposit'),
+      sampleEntry('demo-income', 'income', 'Caregiver deposit', 90000, 10, 'monthly', 'Expected income'),
+      sampleEntry('demo-pharmacy', 'bill', 'Pharmacy', 6425, 12, 'none', 'Prescription pickup')
+    ]
+  };
+}
+
 function renderSettingsDialog(): string {
   const s = data.settings;
   return `<dialog id="settings-dialog" aria-labelledby="settings-title"><form id="settings-form" method="dialog" novalidate>
@@ -80,14 +94,6 @@ function renderSettingsDialog(): string {
   <div class="dialog-actions">${button('Cancel', 'button ghost close-settings', 'type="button"')}${button('Save settings', 'button primary', 'type="submit"')}</div></form></dialog>`;
 }
 
-function renderLicenseDialog(): string {
-  return `<dialog id="license-dialog" aria-labelledby="license-title"><form id="license-form" method="dialog" novalidate><div class="dialog-heading"><div><p class="eyebrow">One-time unlock</p><h2 id="license-title">See the longer road</h2></div><button class="icon-button close-license" type="button" aria-label="Close dialog">×</button></div>
-  <p>Bill Runway Plus extends the forecast from 60 days to a full 12 months. Pay once: <strong>$19</strong>. Your core planner, recurring bills, printing, and backups stay free.</p>
-  <div id="checkout-state" aria-live="polite" aria-busy="true"><a id="buy-plus" class="button primary full" href="${BILLING_BASE}/products/bill-runway/checkout" hidden>Buy Plus for $19</a><p id="checkout-status" class="checkout-status">Checking purchase availability…</p></div>
-  <div class="or"><span>or restore a purchase</span></div><label>License token <input name="license" autocomplete="off" spellcheck="false" required></label><p class="field-help">Verification contacts Sociobot. Card details never enter this app.</p><p id="license-error" class="form-error" role="alert"></p>
-  <div class="dialog-actions">${button('Cancel', 'button ghost close-license', 'type="button"')}${button('Verify license', 'button secondary', 'type="submit"')}</div><p class="fine-print">Purchase subject to our <a href="/terms">terms</a> and <a href="/privacy">privacy notice</a>. Sociobot/Dodo is merchant of record and handles refunds.</p></form></dialog>`;
-}
-
 function entryList(kind: EntryKind): string {
   const entries = data.entries.filter(e => e.kind === kind).sort((a, b) => a.firstDate.localeCompare(b.firstDate));
   if (!entries.length) return `<p class="mini-empty">No ${kind === 'bill' ? 'bills' : 'income'} added yet.</p>`;
@@ -95,7 +101,7 @@ function entryList(kind: EntryKind): string {
 }
 
 function timeline(occurrences: Occurrence[]): string {
-  if (!occurrences.length) return `<section class="empty-timeline"><h2>Your runway is clear—for now.</h2><p>Add a bill or expected income to map the next 60 days.</p>${button('Add your first bill', 'button primary', 'data-open="bill"')}</section>`;
+  if (!occurrences.length) return `<section class="empty-timeline"><h2>No bills or income in this range.</h2><p>Add a bill or expected income to start the payment run.</p>${button('Add your first bill', 'button primary', 'data-open="bill"')}</section>`;
   let lastDate = '';
   return `<ol class="timeline-list">${occurrences.map(o => {
     const date = o.date === lastDate ? '' : `<time datetime="${o.date}">${dateLabel(o.date)}${o.date === todayISO() ? ' · Today' : ''}</time>`;
@@ -113,16 +119,17 @@ function renderPlanner() {
   const dueTotal = occurrences.filter(o => o.entry.kind === 'bill' && !o.paid).reduce((sum, o) => sum + o.entry.amountCents, 0);
   app.innerHTML = `<div id="announcer" class="toast" role="status" aria-live="polite"></div>
   <div id="offline-bar" class="offline-bar" ${online ? 'hidden' : ''}>Offline · your plan still works on this device</div>
-  <header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><nav aria-label="App controls">${button('Install', 'button ghost install-button', installPrompt ? '' : 'hidden')} ${button('◐', 'icon-button', 'id="theme-toggle" aria-label="Switch color theme"')} ${button('Plan settings', 'button secondary', 'id="open-settings"')}</nav></header>
+  ${isDemo ? `<aside class="demo-banner" aria-label="Demo workspace"><strong>Demo — sample data, nothing is saved to your plan</strong><div>${button('Reset demo', 'button ghost', 'id="reset-demo"')}${button('Start for real', 'button ink', 'id="start-real"')}</div></aside>` : ''}
+  <header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><div class="header-actions"><nav aria-label="Primary"><a href="/demo" ${isDemo ? 'aria-current="page"' : ''}>Demo</a><a href="/privacy">Privacy</a></nav><div class="app-controls">${button('Install', 'button ghost install-button', installPrompt ? '' : 'hidden')} ${button('◐', 'icon-button', 'id="theme-toggle" aria-label="Switch color theme"')} ${button('Plan settings', 'button secondary', 'id="open-settings"')}</div></div></header>
   <main id="main">
-    <section class="hero"><div class="hero-copy"><p class="eyebrow">A due-date cash runway</p><h1>See the gap<br>before it arrives.</h1><p class="lede">Map bills against expected income. No bank connection. No full budget. Just what needs to clear next.</p><div class="hero-actions">${button('Add bill', 'button primary', 'data-open="bill"')}${button('Add income', 'button secondary', 'data-open="income"')}</div><p class="advice-note">Forecast from your entries—not financial advice.</p></div><picture class="hero-art"><source media="(max-width: 620px)" srcset="/art/runway-hero-720.webp"><img src="/art/runway-hero-1200.webp" width="1200" height="800" alt="A coral paper causeway crossing dark-blue tidal flats toward a low amber sun" fetchpriority="high" decoding="async"></picture></section>
-    <section class="runway-shell" aria-labelledby="runway-title"><div class="section-heading"><div><p class="eyebrow">${esc(data.settings.planName)}</p><h2 id="runway-title">The next ${days} days</h2></div><div class="range-switch" aria-label="Forecast range"><button class="${days === 60 ? 'active' : ''}" data-days="60" aria-pressed="${days === 60}">60 days</button><button class="${days === 365 ? 'active' : ''}" data-days="365" aria-pressed="${days === 365}">12 months ${isPlus ? '' : '<span aria-label="Plus required">◇</span>'}</button></div></div>
+    <section class="hero"><div class="hero-copy"><p class="eyebrow">A due-date cash planner</p><h1>See cash gaps<br>before bills are due.</h1><p class="lede">For people and caregivers who need to compare upcoming bills with expected income.</p><div class="hero-actions">${button('Add bill', 'button primary', 'data-open="bill"')}${button('Add income', 'button secondary', 'data-open="income"')}${isDemo ? '' : '<a class="button ghost" href="/demo">Try it with sample data</a>'}</div>${isDemo ? '<p class="demo-intro">This sample already shows a shortfall before the next deposit.</p>' : '<p class="demo-intro">The sample opens a separate workspace with four realistic entries.</p>'}<ul class="hero-facts"><li>Free, with a full 12-month view.</li><li>Plan data stays on this device.</li><li>Works offline after the first visit.</li></ul><p class="advice-note">Forecast from your entries—not financial advice.</p></div><picture class="hero-art"><source media="(max-width: 620px)" srcset="/art/runway-hero-720.webp"><img src="/art/runway-hero-1200.webp" width="1200" height="800" alt="A coral paper causeway crosses dark-blue tidal flats toward an amber sun" fetchpriority="high" decoding="async"></picture></section>
+    <section class="runway-shell" aria-labelledby="runway-title"><div class="section-heading"><div><p class="eyebrow">${esc(data.settings.planName)}</p><h2 id="runway-title">The next ${days} days</h2></div><div class="range-switch" aria-label="Forecast range"><button class="${days === 60 ? 'active' : ''}" data-days="60" aria-pressed="${days === 60}">60 days</button><button class="${days === 365 ? 'active' : ''}" data-days="365" aria-pressed="${days === 365}">12 months</button></div></div>
     <div class="summary-strip"><div><span>Available now</span><strong>${formatMoney(data.settings.balanceCents, data.settings.currency)}</strong></div><div><span>Bills in range</span><strong>${formatMoney(dueTotal, data.settings.currency)}</strong></div><div class="${lowest < 0 ? 'negative' : ''}"><span>Lowest point</span><strong>${formatMoney(lowest, data.settings.currency)}</strong></div><div class="coverage"><span>Coverage</span><strong>${firstGap ? `Gap on ${dateLabel(firstGap.date)}` : 'All covered'}</strong></div></div>
-    ${firstGap ? `<div class="gap-callout" role="status"><span class="gap-icon" aria-hidden="true">!</span><p><strong>${formatMoney(firstGap.uncovered, data.settings.currency)} is uncovered by ${dateLabel(firstGap.date)}.</strong><br>That is the first point where entered bills exceed available money and expected income.</p></div>` : occurrences.length ? `<div class="clear-callout" role="status"><span aria-hidden="true">✓</span><p><strong>The path is covered.</strong> Your entered money and income cover every bill in this range.</p></div>` : ''}
-    <div class="runway-grid"><section class="timeline" aria-labelledby="timeline-title"><div class="subheading"><h3 id="timeline-title">Payment run</h3><div>${button('Print one-page run', 'button ghost', 'id="print-run"')}${button('Export CSV', 'button ghost', 'id="export-csv"')}</div></div>${timeline(occurrences)}</section>
+    ${firstGap ? `<div class="gap-callout" role="status"><span class="gap-icon" aria-hidden="true">!</span><p><strong>${formatMoney(firstGap.uncovered, data.settings.currency)} is uncovered by ${dateLabel(firstGap.date)}.</strong><br>That is the first point where entered bills exceed available money and expected income.</p></div>` : occurrences.length ? `<div class="clear-callout" role="status"><span aria-hidden="true">✓</span><p><strong>All bills are covered.</strong> Your entered money and income cover every bill in this range.</p></div>` : ''}
+    <div class="runway-grid"><section class="timeline" aria-labelledby="timeline-title"><div class="subheading"><h3 id="timeline-title">Payment run</h3><div>${button('Print payment run', 'button ghost', 'id="print-run"')}${button('Export CSV', 'button ghost', 'id="export-csv"')}</div></div>${timeline(occurrences)}</section>
     <aside class="waypoints" aria-label="Plan entries"><section><div class="subheading"><h3>Bills</h3>${button('+ Add', 'button text-button', 'data-open="bill"')}</div>${entryList('bill')}</section><section><div class="subheading"><h3>Expected income</h3>${button('+ Add', 'button text-button', 'data-open="income"')}</div>${entryList('income')}</section><section class="data-tools"><h3>Your data</h3><p>Stored only in this browser.</p><div>${button('Back up data', 'button ghost', 'id="export-json"')}<label class="button ghost file-button">Import backup<input id="import-json" type="file" accept="application/json"></label></div></section></aside></div></section>
-    <section class="plus-band"><div><p class="eyebrow">Bill Runway Plus</p><h2>Look beyond the next bend.</h2><p>${isPlus ? 'Your 12-month runway is unlocked on this device.' : 'Extend your view to 12 months with a $19 one-time purchase. No subscription.'}</p></div>${isPlus ? '<span class="plus-active">✓ Plus active</span>' : button('See the Plus unlock', 'button ink', 'id="open-license"')}</section>
-  </main>${footer()}${renderEntryDialog()}${renderSettingsDialog()}${renderLicenseDialog()}`;
+    <section class="info-sections" aria-label="About Bill Runway"><div><p class="eyebrow">How it works</p><h2>Turn due dates into a payment run.</h2><ol><li><strong>Add what is available.</strong><span>Set the money you can use today.</span></li><li><strong>Add bills and income.</strong><span>Choose dates and repeat rules.</span></li><li><strong>Check the first gap.</strong><span>Print or export the payment run.</span></li></ol></div><div class="limits"><p class="eyebrow">What it does not do</p><h2>Your accounts stay separate.</h2><p>Bill Runway does not connect to banks or move money. It uses only the planning details you enter.</p><a href="/privacy">Read the privacy notice</a></div></section>
+  </main>${footer()}${renderEntryDialog()}${renderSettingsDialog()}`;
   bindEvents();
 }
 
@@ -133,13 +140,10 @@ function bindEvents() {
   document.querySelectorAll<HTMLButtonElement>('.close-dialog').forEach(el => el.addEventListener('click', () => entryDialog?.close()));
   entryDialog?.addEventListener('close', () => document.querySelector<HTMLElement>(entryFocusSelector)?.focus());
   document.querySelectorAll<HTMLButtonElement>('.close-settings').forEach(el => el.addEventListener('click', () => (document.querySelector('#settings-dialog') as HTMLDialogElement).close()));
-  document.querySelectorAll<HTMLButtonElement>('.close-license').forEach(el => el.addEventListener('click', () => (document.querySelector('#license-dialog') as HTMLDialogElement).close()));
   document.querySelector('#entry-form')?.addEventListener('submit', submitEntry);
   document.querySelector('#settings-form')?.addEventListener('submit', submitSettings);
-  document.querySelector('#license-form')?.addEventListener('submit', submitLicense);
   document.querySelector('#delete-entry')?.addEventListener('click', removeCurrentEntry);
   document.querySelector('#open-settings')?.addEventListener('click', () => (document.querySelector('#settings-dialog') as HTMLDialogElement).showModal());
-  document.querySelector('#open-license')?.addEventListener('click', openLicense);
   document.querySelectorAll<HTMLButtonElement>('[data-days]').forEach(el => el.addEventListener('click', () => changeDays(Number(el.dataset.days))));
   document.querySelectorAll<HTMLButtonElement>('[data-paid]').forEach(el => el.addEventListener('click', () => togglePaid(el.dataset.paid!, el.dataset.date!)));
   document.querySelector('#print-run')?.addEventListener('click', () => window.print());
@@ -148,6 +152,8 @@ function bindEvents() {
   document.querySelector('#import-json')?.addEventListener('change', importJSON);
   document.querySelector('#theme-toggle')?.addEventListener('click', toggleTheme);
   document.querySelector('.install-button')?.addEventListener('click', installApp);
+  document.querySelector('#reset-demo')?.addEventListener('click', resetDemo);
+  document.querySelector('#start-real')?.addEventListener('click', startForReal);
   document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
 }
 
@@ -159,40 +165,6 @@ function openEntry(kind: EntryKind, id: string | null = null) {
   setTimeout(() => document.querySelector<HTMLInputElement>('#entry-form input[name="name"]')?.focus(), 0);
 }
 
-function updateCheckoutState() {
-  const container = document.querySelector<HTMLElement>('#checkout-state');
-  const link = document.querySelector<HTMLAnchorElement>('#buy-plus');
-  const status = document.querySelector<HTMLElement>('#checkout-status');
-  if (!container || !link || !status) return;
-  container.setAttribute('aria-busy', checkoutAvailable === null ? 'true' : 'false');
-  link.hidden = checkoutAvailable !== true;
-  status.hidden = checkoutAvailable === true;
-  status.textContent = checkoutAvailable === null
-    ? 'Checking purchase availability…'
-    : 'Plus purchases are temporarily unavailable. You can still restore an existing license below.';
-}
-
-async function checkCheckoutAvailability() {
-  if (checkoutAvailable !== null) { updateCheckoutState(); return; }
-  if (checkoutCheck) return checkoutCheck;
-  checkoutCheck = (async () => {
-    try {
-      const response = await fetch(`${BILLING_BASE}/products`, { headers: { Accept: 'application/json' } });
-      const body = response.ok ? await response.json() as { data?: Array<{ slug?: string }> } : null;
-      checkoutAvailable = Boolean(body?.data?.some(product => product.slug === 'bill-runway'));
-    } catch { checkoutAvailable = false; }
-    updateCheckoutState();
-  })();
-  return checkoutCheck;
-}
-
-function openLicense() {
-  (document.querySelector('#license-dialog') as HTMLDialogElement).showModal();
-  if (!online) { checkoutAvailable = false; updateCheckoutState(); return; }
-  if (checkoutAvailable !== true) { checkoutAvailable = null; checkoutCheck = null; updateCheckoutState(); }
-  void checkCheckoutAvailability();
-}
-
 async function submitEntry(event: Event) {
   event.preventDefault();
   const form = event.currentTarget as HTMLFormElement;
@@ -201,7 +173,7 @@ async function submitEntry(event: Event) {
   const amount = parseMoney(String(fd.get('amount')));
   const name = String(fd.get('name')).trim();
   const firstDate = String(fd.get('date'));
-  if (!name) { error.textContent = 'Enter a name for this waypoint.'; return; }
+  if (!name) { error.textContent = 'Enter a name for this bill or income.'; return; }
   if (amount === null || amount <= 0) { error.textContent = 'Enter a positive amount with no more than two decimal places.'; return; }
   if (!isValidISODate(firstDate)) { error.textContent = 'Choose a valid calendar date.'; return; }
   const old = editingId ? data.entries.find(e => e.id === editingId) : undefined;
@@ -233,7 +205,6 @@ async function togglePaid(id: string, date: string) {
 }
 
 function changeDays(next: number) {
-  if (next === 365 && !isPlus) { openLicense(); return; }
   days = next; renderPlanner();
 }
 
@@ -264,39 +235,49 @@ function toggleTheme() {
   document.documentElement.dataset.theme = dark ? 'light' : 'dark'; localStorage.setItem('bill-runway-theme', dark ? 'light' : 'dark');
 }
 
-async function submitLicense(event: Event) {
-  event.preventDefault(); const form = event.currentTarget as HTMLFormElement; const token = String(new FormData(form).get('license')).trim(); const error = form.querySelector<HTMLElement>('#license-error')!;
-  if (!token) { error.textContent = 'Paste the license token from your receipt.'; return; }
-  error.textContent = 'Checking license…';
-  const valid = await verifyLicense(token, true);
-  if (!valid) { error.textContent = online ? 'That license is not active for Bill Runway. Check the token or buy a new license.' : 'Connect to the internet to verify this license once.'; return; }
-  renderPlanner(); announce('Plus unlocked. Your 12-month runway is ready.');
+async function resetDemo() {
+  data = sampleData();
+  await replaceData(data);
+  localStorage.setItem(DEMO_SEEDED_KEY, '1');
+  days = 60;
+  renderPlanner();
+  announce('Demo reset to the original sample.');
 }
 
-async function verifyLicense(token: string, force = false): Promise<boolean> {
-  let cached: { token: string; valid: boolean; checkedAt: number } | null = null;
-  try { cached = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null'); } catch { localStorage.removeItem(VERDICT_KEY); }
-  if (!force && cached?.token === token && cached.valid) isPlus = true;
-  if (!force && cached?.token === token && Date.now() - cached.checkedAt < 86_400_000) return cached.valid;
-  try {
-    const response = await fetch(`${BILLING_BASE}/products/bill-runway/verify?license=${encodeURIComponent(token)}`);
-    const result = await response.json() as { valid: boolean };
-    localStorage.setItem(VERDICT_KEY, JSON.stringify({ token, valid: result.valid, checkedAt: Date.now() }));
-    if (result.valid) localStorage.setItem(LICENSE_KEY, token); else localStorage.removeItem(LICENSE_KEY);
-    isPlus = result.valid; return result.valid;
-  } catch { return Boolean(cached?.valid); }
+async function startForReal() {
+  localStorage.removeItem(DEMO_SEEDED_KEY);
+  try { await deleteDemoData(); } catch { /* Navigation still leaves real data untouched. */ }
+  location.assign('/');
 }
 
 async function installApp() { if (installPrompt) { await installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; renderPlanner(); } }
 
 async function init() {
   const theme = localStorage.getItem('bill-runway-theme'); if (theme) document.documentElement.dataset.theme = theme;
-  if (location.pathname === '/privacy' || location.pathname === '/privacy/') { app.innerHTML = legalPage('privacy'); return; }
-  if (location.pathname === '/terms' || location.pathname === '/terms/') { app.innerHTML = legalPage('terms'); return; }
-  const url = new URL(location.href); const returnedLicense = url.searchParams.get('license');
-  if (returnedLicense) { localStorage.setItem(LICENSE_KEY, returnedLicense); url.searchParams.delete('license'); history.replaceState({}, '', url); }
-  const token = returnedLicense || localStorage.getItem(LICENSE_KEY); if (token) void verifyLicense(token).then(() => { if (data) renderPlanner(); });
-  try { data = await loadData(); renderPlanner(); } catch { app.innerHTML = `<main id="main" class="fatal"><h1>Bill Runway could not open local storage.</h1><p>Allow site data for this browser, then reload. Nothing has been sent anywhere.</p><button class="button primary" onclick="location.reload()">Try again</button></main>`; }
+  if (location.pathname === '/privacy' || location.pathname === '/privacy/') { document.title = 'Privacy — Bill Runway'; app.innerHTML = legalPage('privacy'); return; }
+  if (location.pathname === '/terms' || location.pathname === '/terms/') { document.title = 'Terms — Bill Runway'; app.innerHTML = legalPage('terms'); return; }
+  if (!['/', '/demo', '/demo/'].includes(location.pathname)) { document.title = 'Page not found — Bill Runway'; app.innerHTML = `<header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a></header><main id="main" class="fatal"><p class="eyebrow">404</p><h1>We could not find this page.</h1><p>The address may be wrong. Your saved plan has not changed.</p><a class="button primary" href="/">Open Bill Runway</a></main>${footer()}`; return; }
+  const url = new URL(location.href);
+  // Retired checkout links may still return an old license parameter. Strip it
+  // without storing or transmitting the token now that every feature is free.
+  if (url.searchParams.has('license')) {
+    url.searchParams.delete('license');
+    history.replaceState({}, '', url);
+  }
+  localStorage.removeItem('sb_license:bill-runway');
+  localStorage.removeItem('sb_license_verdict:bill-runway');
+  isDemo = location.pathname === '/demo' || location.pathname === '/demo/' || url.searchParams.get('demo') === '1';
+  configureStorageNamespace(isDemo);
+  document.title = isDemo ? 'Demo — Bill Runway' : 'Bill Runway — see cash gaps before bills are due';
+  try {
+    data = await loadData();
+    if (isDemo && localStorage.getItem(DEMO_SEEDED_KEY) !== '1') {
+      data = sampleData();
+      await replaceData(data);
+      localStorage.setItem(DEMO_SEEDED_KEY, '1');
+    }
+    renderPlanner();
+  } catch { app.innerHTML = `<main id="main" class="fatal"><h1>Bill Runway could not open local storage.</h1><p>Allow site data for this browser, then reload. Nothing has been sent anywhere.</p><button class="button primary" onclick="location.reload()">Try again</button></main>`; }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(reg => { reg.addEventListener('updatefound', () => { const worker = reg.installing; worker?.addEventListener('statechange', () => { if (worker.state === 'installed' && navigator.serviceWorker.controller) announce('An update is ready. Reload to use it.'); }); }); }).catch(() => {});
 }
 

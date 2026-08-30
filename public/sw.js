@@ -1,5 +1,5 @@
-const VERSION = 'bill-runway-v6';
-const SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/art/runway-hero-720.webp', '/art/runway-hero-1200.webp'];
+const VERSION = 'bill-runway-v7';
+const SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/art/runway-hero-720.webp', '/art/runway-hero-1200.webp', '/art/social-card.webp'];
 
 async function cacheFresh(cache, url) {
   const response = await fetch(new Request(url, { cache: 'reload' }));

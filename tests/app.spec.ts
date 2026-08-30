@@ -6,8 +6,8 @@ test.beforeEach(async ({ page }, testInfo) => {
   await page.goto('/');
 });
 
-test('plans an uncovered bill, persists it, and marks it paid', async ({ page }) => {
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/See the gap/);
+test('@claim:first-gap plans an uncovered bill, persists it, and marks it paid', async ({ page }) => {
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/See cash gaps/);
   await page.getByRole('button', { name: 'Plan settings' }).click();
   await page.getByLabel('Money available now').fill('100.00');
   await page.getByRole('button', { name: 'Save settings' }).click();
@@ -25,7 +25,10 @@ test('plans an uncovered bill, persists it, and marks it paid', async ({ page })
   await expect(page.getByText('All covered')).toBeVisible();
 });
 
-test('stays usable offline after an online visit', async ({ page, context }) => {
+test('@claim:offline-reload stays usable offline after an online visit', async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:4173/demo');
   await page.waitForFunction(() => navigator.serviceWorker?.controller !== null);
   await page.waitForFunction(async () => {
     const keys = await caches.keys();
@@ -36,12 +39,13 @@ test('stays usable offline after an online visit', async ({ page, context }) => 
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByText(/Offline ·/)).toBeVisible();
   await context.setOffline(false);
+  await context.close();
 });
 
 test('rejects an imported backup with an impossible calendar date without replacing the plan', async ({ page }) => {
   await page.locator('#import-json').setInputFiles('tests/fixtures/impossible-date.json');
   await expect(page.getByRole('status')).toContainText('Import failed. Choose an unmodified Bill Runway JSON backup.');
-  await expect(page.getByText('My runway')).toBeVisible();
+  await expect(page.getByText('My plan')).toBeVisible();
   await expect(page.getByText('Impossible bill')).not.toBeVisible();
 });
 
@@ -73,7 +77,7 @@ test('migrates stored v1 data without normalising an impossible date', async ({ 
   }))).toBe(1);
 });
 
-test('imports a real leap date and exports owned data', async ({ page }) => {
+test('@claim:json-backup imports a real leap date and exports owned data', async ({ page }) => {
   page.on('dialog', dialog => dialog.accept());
   await page.locator('#import-json').setInputFiles('tests/fixtures/leap-date.json');
   await expect(page.getByRole('status')).toContainText('Backup imported.');
@@ -92,27 +96,83 @@ test('restores focus when an entry dialog closes with Escape', async ({ page }) 
   await expect(opener).toBeFocused();
 });
 
-test('does not expose a dead checkout when the product is absent', async ({ page }) => {
-  await page.route('https://api.sociobot.in/api/v1/products', route => route.fulfill({ json: { data: [] } }));
-  await page.getByRole('button', { name: /12 months/ }).click();
-  await expect(page.getByText('Plus purchases are temporarily unavailable.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Buy Plus for $19' })).toBeHidden();
-  await expect(page.getByLabel('License token')).toBeEnabled();
+test('@claim:twelve-month-view keeps the 12-month planner usable when no production checkout exists', async ({ page }) => {
+  let billingRequests = 0;
+  await page.route('https://api.sociobot.in/**', route => {
+    billingRequests += 1;
+    return route.fulfill({ status: 404, json: { error: 'enabled factory product', status: 404 } });
+  });
+
+  await page.getByRole('button', { name: '12 months' }).click();
+
+  await expect(page.getByRole('heading', { name: 'The next 365 days' })).toBeVisible();
+  await expect(page.getByText(/temporarily unavailable/i)).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Buy Plus/i })).toHaveCount(0);
+  expect(billingRequests).toBe(0);
 });
 
-test('exposes the Sociobot checkout only for a registered catalogue product', async ({ page }) => {
-  await page.route('https://api.sociobot.in/api/v1/products', route => route.fulfill({ json: { data: [{ slug: 'bill-runway' }] } }));
-  await page.getByRole('button', { name: 'See the Plus unlock' }).click();
-  await expect(page.getByRole('link', { name: 'Buy Plus for $19' })).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/bill-runway/checkout');
-});
-
-test('captures a returned license, strips it from the URL, and unlocks after verification', async ({ page }) => {
-  await page.route('https://api.sociobot.in/api/v1/products/bill-runway/verify?license=valid-token', route => route.fulfill({ json: { valid: true, reason: 'ok', expires_at: null } }));
+test('discards a retired license token without transmitting it', async ({ page }) => {
+  let billingRequests = 0;
+  await page.route('https://api.sociobot.in/**', route => { billingRequests += 1; return route.abort(); });
   await page.goto('/?license=valid-token');
   await expect(page).not.toHaveURL(/license=/);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('sb_license:bill-runway'))).toBe('valid-token');
+  expect(await page.evaluate(() => localStorage.getItem('sb_license:bill-runway'))).toBeNull();
   await page.getByRole('button', { name: /12 months/ }).click();
   await expect(page.getByRole('heading', { name: 'The next 365 days' })).toBeVisible();
+  expect(billingRequests).toBe(0);
+});
+
+test('@claim:demo-isolation keeps sample changes separate from the real plan', async ({ page }) => {
+  await page.getByRole('button', { name: 'Plan settings' }).click();
+  await page.getByLabel('Plan name').fill('Private household plan');
+  await page.getByRole('button', { name: 'Save settings' }).click();
+
+  await page.getByRole('link', { name: 'Try it with sample data' }).click();
+  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page.getByText('Demo — sample data, nothing is saved to your plan')).toBeVisible();
+  await expect(page.getByText('Care plan sample')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Electricity/ })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await expect(page).toHaveURL('http://127.0.0.1:4173/');
+  await expect(page.getByText('Private household plan')).toBeVisible();
+  expect(await page.evaluate(async () => (await indexedDB.databases()).some(database => database.name === 'demo:bill-runway'))).toBe(false);
+});
+
+test('@claim:csv-export exports one CSV row per visible payment-run item', async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeBlob = Blob;
+    class CapturedBlob extends NativeBlob {
+      constructor(parts?: BlobPart[], options?: BlobPropertyBag) {
+        super(parts, options);
+        void this.text().then(text => sessionStorage.setItem('captured-download', text));
+      }
+    }
+    Object.defineProperty(globalThis, 'Blob', { value: CapturedBlob });
+  });
+  await page.goto('/demo');
+  const eventCount = await page.locator('.timeline-event').count();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export CSV' }).click();
+  await downloadPromise;
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('captured-download'))).not.toBeNull();
+  const csv = await page.evaluate(() => sessionStorage.getItem('captured-download')) as string;
+  const rows = csv.trim().split('\n');
+  expect(rows[0]).toBe('"Date","Type","Name","Amount","Status","Balance after"');
+  expect(rows.slice(1).some(row => row.includes('"Electricity"'))).toBe(true);
+  expect(rows).toHaveLength(eventCount + 1);
+});
+
+test('@claim:local-only sends no plan data off origin during a demo flow', async ({ page }) => {
+  const external: string[] = [];
+  page.on('request', request => {
+    if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') external.push(request.url());
+  });
+  await page.goto('/demo');
+  await page.getByRole('button', { name: 'Mark paid' }).first().click();
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.getByRole('button', { name: /Electricity/ })).toBeVisible();
+  expect(external).toEqual([]);
 });
 
 test('privacy and terms remain standalone and make no external requests', async ({ page }) => {
@@ -134,7 +194,7 @@ test('keeps the planner within a 390px viewport and exposes the keyboard skip li
   await expect(page.locator('.skip-link')).toBeFocused();
 });
 
-test('keeps import focus visible and action targets separated on a 390px keyboard journey', async ({ page }) => {
+test('@claim:keyboard-controls keeps import focus visible and action targets separated on a 390px keyboard journey', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
 
   // Reach the real file control through the keyboard, rather than focusing it
@@ -162,6 +222,16 @@ test('keeps import focus visible and action targets separated on a 390px keyboar
   });
   expect(gaps.printExport).toBeGreaterThanOrEqual(8);
   expect(gaps.backupImport).toBeGreaterThanOrEqual(8);
+});
+
+test('@claim:print-layout keeps the payment run and removes controls in print media', async ({ page }) => {
+  await page.goto('/demo');
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByRole('heading', { name: 'Payment run' })).toBeVisible();
+  await expect(page.locator('.timeline-event').first()).toBeVisible();
+  await expect(page.locator('.hero')).toBeHidden();
+  await expect(page.locator('.waypoints')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Mark paid' }).first()).toBeHidden();
 });
 
 test('has no automatically detectable serious accessibility issues', async ({ page }) => {
