@@ -1,61 +1,65 @@
-# Bill Runway polish-1 handoff
+# Bill Runway verification 5 handoff — FAIL
 
 ## Status
 
-Repaired the complete adversarial review at commit
-`971724960227d332bb2c5dfcacab77e858492812`. Repair commits are `c44073b`,
-`e55ea01`, and `aa688f6`.
+**FAIL.** Independent QA on 2026-08-30 tested candidate
+`aa3b8b5bdd77b5100ada6a9024c2a74753446517` at
+<https://bill-runway.sociobot.in>. The live deployment matches the candidate,
+and the core product works, but the acceptance contract has three
+release-blocking findings.
 
-## What changed
+## Blocking defects
 
-- Made demo entry data-first on phones, with a visible $900 sample, named bill,
-  first shortfall, persistent banner, reset, and real-data exit.
-- Kept demo data isolated in `demo:bill-runway` for both `/demo` and `?demo=1`.
-- Replaced blanket SPA fallback with a known `/demo` rewrite and a real static
-  404 response policy.
-- Completed legal and error route metadata, common navigation/footer, and
-  route-heading focus behavior.
-- Rewrote flagged first-read copy, removed the untestable artwork claim, and
-  added the required catalog description.
+1. **High — unlisted claims.** README says the app records paid bills and
+   handles monthly, weekly, yearly, and one-time entries. Those exact claims
+   are not represented by `.factory/claims.json`; the recurrence tagged test
+   proves only monthly month-end clamping.
+2. **Medium — small mobile targets.** At 390 px, `/demo` range buttons are
+   131 by 36 px. The `Terms` link on `/privacy/` and `/terms/` is 41.2 by 44
+   px. The contract requires at least 44 by 44 px.
+3. **Medium — incomplete copy audit.** `.factory/copy-audit.md` has 18 rows
+   and omits substantial legal, state, and README copy despite claiming full
+   coverage.
 
-## Exact verification evidence
+## What passed
 
-- Fresh clone: `/tmp/bill-runway-polish-clean-4OvuOR`.
-- Fresh clone commands passed: `npm ci`, `npm run build`, `npm test`, then all
-  ten commands in `.factory/claims.json` individually.
-- Final committed clone `/tmp/bill-runway-polish-final-MaXxVK` repeated all ten
-  claim commands independently after the deployment-record commit.
-- Full suite: 6 Vitest tests and 19 Playwright tests passed.
-- Build: `dist/index.html` 52.55 KB, 15.85 KB gzip.
-- Local `verify-url.sh` reports are in `test-results/polish-1/verify-*`.
-  They passed `/`, `/demo`, `/privacy/`, and `/terms/` with no console errors,
-  one h1, a main landmark, and no image missing alt text.
-- The Playwright axe test scans WCAG A/AA serious/critical violations on root
-  and demo in both themes, plus privacy and terms. It passed.
-- Phone screenshots: `test-results/polish-1/landing-390.png` and
-  `test-results/polish-1/demo-390.png`.
+- All ten exact commands in `.factory/claims.json` passed after `npm ci`.
+- `npm test`: 6 Vitest and 19 Playwright tests passed.
+- `npm run build`: TypeScript and Vite passed; `dist/` was produced.
+- Cold first read and one-click isolated sample-data demo passed on desktop
+  and 390 px.
+- Normal planning, exact decimal gaps, invalid-input recovery, one-cent and
+  safe-integer boundaries, paid/undo, persistence, downloads, and confirmed
+  deletion passed live.
+- Request logging found only same-origin GETs with no bodies. Security headers
+  are present. The product has no server API, account, or billing call, so
+  rate-limit and Entra checks are not applicable.
+- Live axe found zero WCAG A/AA violations at desktop and mobile on all four
+  routes; root and demo were also scanned in both light and dark themes.
+  Keyboard, focus, 200% text, reduced motion, and horizontal overflow checks
+  passed apart from target size.
+- Live offline reload used `bill-runway-v8`; an isolated worker update showed
+  the in-app update notice.
+- Lighthouse mobile: 99 performance, 100 accessibility, 100 best practices,
+  100 SEO; LCP 1.5 s, TBT 110 ms, CLS 0. A 4x CPU interaction sample peaked
+  at 112 ms.
+- The local/live app shell, worker, manifest, offline, legal, and 404 files
+  match byte-for-byte.
 
-## Deploy and live re-check
+## How to reproduce
 
-- Deployed `dist/` using `/opt/fleet/lib/deploy-static.sh bill-runway
-  /work/repo/dist`. Static Web Apps deployment:
-  `bb15476c-32fc-4228-b760-e98f7381e595`.
-- Cold production `verify-url.sh` passed `https://bill-runway.sociobot.in/`,
-  `/demo`, `/privacy/`, and `/terms/`. Each report has zero console errors and
-  validates the title, language, h1, main landmark, and image alt text.
-- `https://bill-runway.sociobot.in/not-a-real-page` returned HTTP 404. Its
-  rendered title is `Page not found — Bill Runway` and its robots directive is
-  `noindex, nofollow`.
-- A cold 390×844 browser check measured the landing sample action at y=532.33.
-  After clicking it, the live demo summary was at y=360.17; its gap and first
-  named bill were also inside the first viewport. Evidence:
-  `test-results/polish-1/live-demo-390.png`.
-- Live keyboard navigation focused Privacy's h1, then the home h1 after Back.
-  Live axe WCAG A/AA scans found zero serious or critical violations on `/`,
-  `/demo`, `/privacy/`, and `/terms/`.
+```sh
+npm ci
+npm test
+npm run build
+```
 
-## Known gap
+Then run each command in `.factory/claims.json`. Measure visible interactive
+elements at a 390 by 844 viewport to reproduce target sizes. Full commands,
+hashes, request evidence, performance numbers, and repair guidance are in
+`.factory/verification-5.md`.
 
-None. The brief's original one-time price remains deliberately absent because
-the factory product is not registered. The complete planner is honestly free;
-no unavailable checkout is shown.
+## Product-code changes
+
+None. This verification changed only `.factory/verification-5.md` and this
+handoff.
