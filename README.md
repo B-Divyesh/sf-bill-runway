@@ -1,26 +1,29 @@
 # Bill Runway
 
-Bill Runway is a local, offline-first due-date cash planner. It is for people and caregivers who need to answer one question: **which upcoming bills are covered before expected income arrives?**
+Bill Runway helps you compare upcoming bills with expected income on this device.
+It shows the first bill you cannot cover, records paid bills, and exports the upcoming list.
 
-It is not a bank-connected budget, ledger, payment service, or financial-advice product. Users enter available money, bills, and expected income dates. The timeline identifies the first uncovered due date, records paid items, and exports the payment run.
+It is for people and caregivers planning due dates without a bank connection.
+It is not a budgeting service, payment service, or financial advice.
 
 Live product: [bill-runway.sociobot.in](https://bill-runway.sociobot.in)
 
-## What ships
+## What it does
 
-- free 60-day and 12-month views with recurring entries
-- clear covered/uncovered running balances and paid status
-- print layout and CSV payment-run export
-- IndexedDB persistence plus JSON backup/import
-- installable PWA with a tested offline path
-- light/dark themes, keyboard support, and reduced-motion support
-- isolated sample-data demo at [`/demo`](https://bill-runway.sociobot.in/demo)
-- no account, bank credentials, analytics, external fonts, or runtime CDN
+- Shows 60 days or 12 months of bills and expected income.
+- Finds the first uncovered bill amount.
+- Handles monthly, weekly, yearly, and one-time entries.
+- Exports the visible upcoming list as CSV.
+- Imports and exports your plan as JSON.
+- Stores plan data in this browser.
+- Works offline after the first visit.
+- Offers an isolated sample at [`/demo`](https://bill-runway.sociobot.in/demo).
 
-Choose **Try it with sample data** on the first screen to open four realistic
-entries in a separate `demo:bill-runway` IndexedDB database. **Reset demo**
-restores the sample. **Start for real** deletes the demo database and returns to
-the untouched `bill-runway` database. See [`.factory/demo.md`](.factory/demo.md).
+Choose **Try it with sample data** on the first screen.
+It opens four realistic entries in a separate `demo:bill-runway` browser database.
+**Reset demo** restores the sample.
+**Start for real** deletes the sample database and returns to your real plan.
+See [`.factory/demo.md`](.factory/demo.md) for the sample details.
 
 ## Develop and verify
 
@@ -33,7 +36,10 @@ npm test
 npm run build
 ```
 
-`npm test` runs unit tests and Playwright journeys (including malformed-backup, axe, offline, 390px, and keyboard coverage). The exact production command is `npm run build`; it runs strict TypeScript checking and writes the static app to `./dist`, with `dist/index.html` at its root.
+`npm test` runs unit tests and Playwright journeys.
+They cover import errors, accessibility, offline use, mobile layout, and keyboard controls.
+Run `npm run build` for the production build.
+It checks TypeScript and writes `dist/index.html`.
 
 To inspect the production build:
 
@@ -41,28 +47,34 @@ To inspect the production build:
 npm run preview
 ```
 
-Playwright is pinned to 1.58.2. In a fresh environment without the factory's shared browser cache, run `npx playwright install chromium` once. Tested product claims and their exact commands are listed in [`.factory/claims.json`](.factory/claims.json).
+Playwright is pinned to 1.58.2.
+Run `npx playwright install chromium` if your environment has no browser cache.
+Tested product claims and exact commands are in [`.factory/claims.json`](.factory/claims.json).
 
-## Configuration and deployment
+## Deploy
 
-Deploy `dist/` as a static site with SPA fallback to `index.html`. The `/privacy` and `/terms` directories also contain standalone pages for hosts without fallback routing.
+Deploy `dist/` as a static site.
+The static configuration sends `/demo` to the app and unknown paths to the designed 404 page.
+The `/privacy` and `/terms` directories provide standalone legal pages.
 
-The production artifact is a static PWA. It needs no runtime configuration,
-account service, payment service, or secret.
+The product is a static PWA.
+It needs no account service, payment service, runtime configuration, or secret.
 
 ## Privacy and data ownership
 
-Plan data stays in the browser's IndexedDB. Demo data uses a separate database.
-Theme and demo-state preferences use localStorage. The app makes no
-cross-origin runtime requests. See the in-product privacy and terms pages.
+Plan data stays in the browser’s IndexedDB.
+Demo data uses a separate database.
+Theme and demo preferences use localStorage.
+The app makes no cross-origin runtime requests.
+Read the in-product [privacy notice](https://bill-runway.sociobot.in/privacy) and [terms](https://bill-runway.sociobot.in/terms).
 
 ## Monetisation deviation
 
-The brief calls for a one-time purchase. The required Sociobot product is not
-registered, and repository rules prohibit changing billing infrastructure.
-This release makes the complete 12-month planner free instead of advertising a
-checkout that returns 404. Monetisation can return only after the factory
-registers the product and its full purchase lifecycle is independently tested.
+The brief calls for a one-time purchase.
+The required Sociobot product is not registered.
+Repository rules prohibit changing billing infrastructure.
+The complete planner is free instead of advertising a checkout that returns 404.
+Monetisation can return after the factory registers and tests the full purchase lifecycle.
 
 ## Project notes
 

@@ -6,7 +6,7 @@ import type { AppData, Entry, EntryKind, Occurrence, Recurrence, Settings } from
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const DEMO_SEEDED_KEY = 'demo:bill-runway:seeded';
-const BUILD_ID = 'repair-4';
+const BUILD_ID = 'polish-1';
 
 let data: AppData;
 let days = 60;
@@ -32,20 +32,45 @@ function announce(message: string) {
   }
 }
 
+function setPageMetadata(title: string, description: string, canonical: string, noindex = false) {
+  document.title = title;
+  const canonicalLink = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (canonicalLink) canonicalLink.href = canonical;
+  const descriptionMeta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+  if (descriptionMeta) descriptionMeta.content = description;
+  const ogTitle = document.querySelector<HTMLMetaElement>('meta[property="og:title"]');
+  const ogDescription = document.querySelector<HTMLMetaElement>('meta[property="og:description"]');
+  const ogUrl = document.querySelector<HTMLMetaElement>('meta[property="og:url"]');
+  const twitterTitle = document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]');
+  const twitterDescription = document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]');
+  if (ogTitle) ogTitle.content = title;
+  if (ogDescription) ogDescription.content = description;
+  if (ogUrl) ogUrl.content = canonical;
+  if (twitterTitle) twitterTitle.content = title;
+  if (twitterDescription) twitterDescription.content = description;
+  let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+  if (noindex && !robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.append(robots); }
+  if (robots) robots.content = noindex ? 'noindex, nofollow' : 'index, follow';
+}
+
+function focusRouteHeading() {
+  window.setTimeout(() => document.querySelector<HTMLElement>('main h1')?.focus(), 0);
+}
+
 function button(label: string, cls = 'button secondary', attrs = '') {
   return `<button class="${cls}" ${attrs}>${label}</button>`;
 }
 
 function legalPage(kind: 'privacy' | 'terms'): string {
   const privacy = kind === 'privacy';
-  return `<header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><nav aria-label="Primary"><a href="/demo">Demo</a><a href="/${privacy ? 'terms' : 'privacy'}">${privacy ? 'Terms' : 'Privacy'}</a></nav></header>
-  <main id="main" class="legal"><p class="eyebrow">Plain-language ${privacy ? 'privacy' : 'terms'}</p><h1>${privacy ? 'Your plan stays yours.' : 'A planning tool, not advice.'}</h1>
+  return `<header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><nav aria-label="Primary"><a href="/demo">Demo</a><a href="/privacy" ${privacy ? 'aria-current="page"' : ''}>Privacy</a><a href="/terms" ${privacy ? '' : 'aria-current="page"'}>Terms</a></nav></header>
+  <main id="main" class="legal"><p class="eyebrow">Plain-language ${privacy ? 'privacy' : 'terms'}</p><h1 tabindex="-1">${privacy ? 'Your plan stays yours.' : 'A planning tool, not advice.'}</h1>
   ${privacy ? `<p>Bill Runway stores bills, income dates, notes, settings, and paid status in IndexedDB on this device. We do not receive or analyse your plan. The app has no analytics, ad trackers, bank connections, or third-party scripts.</p><h2>Demo data</h2><p>The demo uses a separate browser database. Resetting or leaving through “Start for real” deletes that sample workspace without reading your real plan.</p><h2>Your choices</h2><p>Use “Back up data” to take a JSON copy. Clearing site data removes the local plan from this browser. Import only backups you trust.</p>` : `<p>Bill Runway displays forecasts from dates, amounts, and starting money that you enter. It does not connect to financial institutions or move money. It does not guarantee income or provide financial, debt, tax, or legal advice. Check each invoice and account before paying.</p><h2>Price</h2><p>The complete planner, including its 12-month view, is free. There is no checkout, account, or subscription.</p><h2>Warranty</h2><p>The software is provided “as is” without warranty. You remain responsible for entered data, backups, and payment decisions. These terms are governed by applicable law and do not limit rights that cannot legally be limited.</p>`}
   <p class="legal-date">Effective 30 August 2026 · <a href="/">Return to Bill Runway</a></p></main>${footer()}`;
 }
 
 function footer() {
-  return `<footer><p>Plan bills against expected income on this device.</p><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav><p class="art-credit">Original AI-assisted cut-paper artwork, made for Bill Runway. Built by Param Factory · ${BUILD_ID}</p></footer>`;
+  return `<footer><p>Plan bills against expected income on this device.</p><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav><p class="art-credit">Built by Param Factory · ${BUILD_ID}</p></footer>`;
 }
 
 function renderEntryDialog(): string {
@@ -120,15 +145,15 @@ function renderPlanner() {
   app.innerHTML = `<div id="announcer" class="toast" role="status" aria-live="polite"></div>
   <div id="offline-bar" class="offline-bar" ${online ? 'hidden' : ''}>Offline · your plan still works on this device</div>
   ${isDemo ? `<aside class="demo-banner" aria-label="Demo workspace"><strong>Demo — sample data, nothing is saved to your plan</strong><div>${button('Reset demo', 'button ghost', 'id="reset-demo"')}${button('Start for real', 'button ink', 'id="start-real"')}</div></aside>` : ''}
-  <header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><div class="header-actions"><nav aria-label="Primary"><a href="/demo" ${isDemo ? 'aria-current="page"' : ''}>Demo</a><a href="/privacy">Privacy</a></nav><div class="app-controls">${button('Install', 'button ghost install-button', installPrompt ? '' : 'hidden')} ${button('◐', 'icon-button', 'id="theme-toggle" aria-label="Switch color theme"')} ${button('Plan settings', 'button secondary', 'id="open-settings"')}</div></div></header>
-  <main id="main">
-    <section class="hero"><div class="hero-copy"><p class="eyebrow">A due-date cash planner</p><h1>See cash gaps<br>before bills are due.</h1><p class="lede">For people and caregivers who need to compare upcoming bills with expected income.</p><div class="hero-actions">${button('Add bill', 'button primary', 'data-open="bill"')}${button('Add income', 'button secondary', 'data-open="income"')}${isDemo ? '' : '<a class="button ghost" href="/demo">Try it with sample data</a>'}</div>${isDemo ? '<p class="demo-intro">This sample already shows a shortfall before the next deposit.</p>' : '<p class="demo-intro">The sample opens a separate workspace with four realistic entries.</p>'}<ul class="hero-facts"><li>Free, with a full 12-month view.</li><li>Plan data stays on this device.</li><li>Works offline after the first visit.</li></ul><p class="advice-note">Forecast from your entries—not financial advice.</p></div><picture class="hero-art"><source media="(max-width: 620px)" srcset="/art/runway-hero-720.webp"><img src="/art/runway-hero-1200.webp" width="1200" height="800" alt="A coral paper causeway crosses dark-blue tidal flats toward an amber sun" fetchpriority="high" decoding="async"></picture></section>
+  <header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><div class="header-actions"><nav aria-label="Primary"><a href="/demo" ${isDemo ? 'aria-current="page"' : ''}>Demo</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav><div class="app-controls">${button('Install', 'button ghost install-button', installPrompt ? '' : 'hidden')} ${button('◐', 'icon-button', 'id="theme-toggle" aria-label="Switch color theme"')} ${button('Plan settings', 'button secondary', 'id="open-settings"')}</div></div></header>
+  <main id="main" class="${isDemo ? 'demo-main' : ''}">
+    ${isDemo ? `<section class="demo-heading"><p class="eyebrow">Sample workspace</p><h1 tabindex="-1">Review a sample plan.</h1><p>This sample shows $900.00, named bills, and the first shortfall.</p></section>` : `<section class="hero"><div class="hero-copy"><p class="eyebrow">A due-date cash planner</p><h1 tabindex="-1">See cash gaps<br>before bills are due.</h1><p class="lede">For people and caregivers who need to compare upcoming bills with expected income.</p><div class="hero-actions">${button('Add bill', 'button primary', 'data-open="bill"')}${button('Add income', 'button secondary', 'data-open="income"')}<a class="button ghost" href="/demo">Try it with sample data</a></div><p class="demo-intro">The sample opens a separate workspace with four realistic entries.</p><ul class="hero-facts"><li>Free, with a full 12-month view.</li><li>Plan data stays on this device.</li><li>Works offline after the first visit.</li></ul><p class="advice-note">Forecast from your entries—not financial advice.</p></div><picture class="hero-art"><source media="(max-width: 620px)" srcset="/art/runway-hero-720.webp"><img src="/art/runway-hero-1200.webp" width="1200" height="800" alt="A coral paper causeway crosses dark-blue tidal flats toward an amber sun" fetchpriority="high" decoding="async"></picture></section>`}
     <section class="runway-shell" aria-labelledby="runway-title"><div class="section-heading"><div><p class="eyebrow">${esc(data.settings.planName)}</p><h2 id="runway-title">The next ${days} days</h2></div><div class="range-switch" aria-label="Forecast range"><button class="${days === 60 ? 'active' : ''}" data-days="60" aria-pressed="${days === 60}">60 days</button><button class="${days === 365 ? 'active' : ''}" data-days="365" aria-pressed="${days === 365}">12 months</button></div></div>
     <div class="summary-strip"><div><span>Available now</span><strong>${formatMoney(data.settings.balanceCents, data.settings.currency)}</strong></div><div><span>Bills in range</span><strong>${formatMoney(dueTotal, data.settings.currency)}</strong></div><div class="${lowest < 0 ? 'negative' : ''}"><span>Lowest point</span><strong>${formatMoney(lowest, data.settings.currency)}</strong></div><div class="coverage"><span>Coverage</span><strong>${firstGap ? `Gap on ${dateLabel(firstGap.date)}` : 'All covered'}</strong></div></div>
     ${firstGap ? `<div class="gap-callout" role="status"><span class="gap-icon" aria-hidden="true">!</span><p><strong>${formatMoney(firstGap.uncovered, data.settings.currency)} is uncovered by ${dateLabel(firstGap.date)}.</strong><br>That is the first point where entered bills exceed available money and expected income.</p></div>` : occurrences.length ? `<div class="clear-callout" role="status"><span aria-hidden="true">✓</span><p><strong>All bills are covered.</strong> Your entered money and income cover every bill in this range.</p></div>` : ''}
     <div class="runway-grid"><section class="timeline" aria-labelledby="timeline-title"><div class="subheading"><h3 id="timeline-title">Payment run</h3><div>${button('Print payment run', 'button ghost', 'id="print-run"')}${button('Export CSV', 'button ghost', 'id="export-csv"')}</div></div>${timeline(occurrences)}</section>
     <aside class="waypoints" aria-label="Plan entries"><section><div class="subheading"><h3>Bills</h3>${button('+ Add', 'button text-button', 'data-open="bill"')}</div>${entryList('bill')}</section><section><div class="subheading"><h3>Expected income</h3>${button('+ Add', 'button text-button', 'data-open="income"')}</div>${entryList('income')}</section><section class="data-tools"><h3>Your data</h3><p>Stored only in this browser.</p><div>${button('Back up data', 'button ghost', 'id="export-json"')}<label class="button ghost file-button">Import backup<input id="import-json" type="file" accept="application/json"></label></div></section></aside></div></section>
-    <section class="info-sections" aria-label="About Bill Runway"><div><p class="eyebrow">How it works</p><h2>Turn due dates into a payment run.</h2><ol><li><strong>Add what is available.</strong><span>Set the money you can use today.</span></li><li><strong>Add bills and income.</strong><span>Choose dates and repeat rules.</span></li><li><strong>Check the first gap.</strong><span>Print or export the payment run.</span></li></ol></div><div class="limits"><p class="eyebrow">What it does not do</p><h2>Your accounts stay separate.</h2><p>Bill Runway does not connect to banks or move money. It uses only the planning details you enter.</p><a href="/privacy">Read the privacy notice</a></div></section>
+    ${isDemo ? '' : '<section class="info-sections" aria-label="About Bill Runway"><div><p class="eyebrow">How it works</p><h2>Turn due dates into a payment run.</h2><ol><li><strong>Add what is available.</strong><span>Set the money you can use today.</span></li><li><strong>Add bills and income.</strong><span>Choose dates and repeat rules.</span></li><li><strong>Check the first gap.</strong><span>Print or export the payment run.</span></li></ol></div><div class="limits"><p class="eyebrow">What it does not do</p><h2>No bank connections or payments.</h2><p>Bill Runway does not connect to banks or move money. It uses only the planning details you enter.</p><a href="/privacy">Read the privacy notice</a></div></section>'}
   </main>${footer()}${renderEntryDialog()}${renderSettingsDialog()}`;
   bindEvents();
 }
@@ -253,10 +278,11 @@ async function startForReal() {
 async function installApp() { if (installPrompt) { await installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; renderPlanner(); } }
 
 async function init() {
+  const returnedWithHistory = performance.getEntriesByType('navigation').some(entry => (entry as PerformanceNavigationTiming).type === 'back_forward');
   const theme = localStorage.getItem('bill-runway-theme'); if (theme) document.documentElement.dataset.theme = theme;
-  if (location.pathname === '/privacy' || location.pathname === '/privacy/') { document.title = 'Privacy — Bill Runway'; app.innerHTML = legalPage('privacy'); return; }
-  if (location.pathname === '/terms' || location.pathname === '/terms/') { document.title = 'Terms — Bill Runway'; app.innerHTML = legalPage('terms'); return; }
-  if (!['/', '/demo', '/demo/'].includes(location.pathname)) { document.title = 'Page not found — Bill Runway'; app.innerHTML = `<header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a></header><main id="main" class="fatal"><p class="eyebrow">404</p><h1>We could not find this page.</h1><p>The address may be wrong. Your saved plan has not changed.</p><a class="button primary" href="/">Open Bill Runway</a></main>${footer()}`; return; }
+  if (location.pathname === '/privacy' || location.pathname === '/privacy/') { setPageMetadata('Privacy — Bill Runway', 'How Bill Runway stores your plan and keeps the demo separate.', 'https://bill-runway.sociobot.in/privacy'); app.innerHTML = legalPage('privacy'); focusRouteHeading(); return; }
+  if (location.pathname === '/terms' || location.pathname === '/terms/') { setPageMetadata('Terms — Bill Runway', 'Terms for using Bill Runway as a free planning tool.', 'https://bill-runway.sociobot.in/terms'); app.innerHTML = legalPage('terms'); focusRouteHeading(); return; }
+  if (!['/', '/demo', '/demo/'].includes(location.pathname)) { setPageMetadata('Page not found — Bill Runway', 'The requested Bill Runway page was not found.', 'https://bill-runway.sociobot.in/404', true); app.innerHTML = `<header class="site-header"><a class="brand" href="/" aria-label="Bill Runway home"><span class="brand-mark" aria-hidden="true"></span>Bill Runway</a><nav aria-label="Primary"><a href="/demo">Demo</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></header><main id="main" class="fatal"><p class="eyebrow">404</p><h1 tabindex="-1">We could not find this page.</h1><p>The address may be wrong. Check the link and open Bill Runway again.</p><a class="button primary" href="/">Open Bill Runway</a></main>${footer()}`; focusRouteHeading(); return; }
   const url = new URL(location.href);
   // Retired checkout links may still return an old license parameter. Strip it
   // without storing or transmitting the token now that every feature is free.
@@ -268,12 +294,11 @@ async function init() {
   localStorage.removeItem('sb_license_verdict:bill-runway');
   isDemo = location.pathname === '/demo' || location.pathname === '/demo/' || url.searchParams.get('demo') === '1';
   configureStorageNamespace(isDemo);
-  document.title = isDemo ? 'Demo — Bill Runway' : 'Bill Runway — see cash gaps before bills are due';
-  if (isDemo) {
-    document.querySelector<HTMLLinkElement>('link[rel="canonical"]')!.href = 'https://bill-runway.sociobot.in/demo';
-    document.querySelector<HTMLMetaElement>('meta[property="og:url"]')!.content = 'https://bill-runway.sociobot.in/demo';
-    document.querySelector<HTMLMetaElement>('meta[property="og:title"]')!.content = 'Demo — Bill Runway';
-  }
+  setPageMetadata(
+    isDemo ? 'Demo — Bill Runway' : 'Bill Runway — see cash gaps before bills are due',
+    isDemo ? 'Review a sample payment run with bills, income, and the first cash gap.' : 'Compare upcoming bills with expected income and find the first cash gap.',
+    isDemo ? 'https://bill-runway.sociobot.in/demo' : 'https://bill-runway.sociobot.in/'
+  );
   try {
     data = await loadData();
     if (isDemo && localStorage.getItem(DEMO_SEEDED_KEY) !== '1') {
@@ -282,6 +307,7 @@ async function init() {
       localStorage.setItem(DEMO_SEEDED_KEY, '1');
     }
     renderPlanner();
+    if (returnedWithHistory) focusRouteHeading();
   } catch { app.innerHTML = `<main id="main" class="fatal"><h1>Bill Runway could not open local storage.</h1><p>Allow site data for this browser, then reload. Nothing has been sent anywhere.</p><button class="button primary" onclick="location.reload()">Try again</button></main>`; }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(reg => { reg.addEventListener('updatefound', () => { const worker = reg.installing; worker?.addEventListener('statechange', () => { if (worker.state === 'installed' && navigator.serviceWorker.controller) announce('An update is ready. Reload to use it.'); }); }); }).catch(() => {});
 }
@@ -291,3 +317,7 @@ window.addEventListener('offline', () => { online = false; document.querySelecto
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event as BeforeInstallPromptEvent; if (data) renderPlanner(); });
 
 void init();
+
+window.addEventListener('pageshow', event => {
+  if (event.persisted || performance.getEntriesByType('navigation').some(entry => (entry as PerformanceNavigationTiming).type === 'back_forward')) focusRouteHeading();
+});

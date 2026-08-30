@@ -195,6 +195,45 @@ test('keeps the planner within a 390px viewport and exposes the keyboard skip li
   await expect(page.locator('.skip-link')).toBeFocused();
 });
 
+test('keeps the sample action and populated demo plan in the first phone screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const sampleLink = page.getByRole('link', { name: 'Try it with sample data' });
+  await expect(sampleLink).toBeVisible();
+  expect((await sampleLink.boundingBox())!.y + (await sampleLink.boundingBox())!.height).toBeLessThanOrEqual(844);
+
+  await sampleLink.click();
+  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page.getByText('Demo — sample data, nothing is saved to your plan')).toBeVisible();
+  const summary = page.locator('.summary-strip strong').first();
+  await expect(summary).toHaveText('$900.00');
+  const electricity = page.locator('.timeline-event').first();
+  await expect(electricity).toContainText('Electricity');
+  const gap = page.getByText(/is uncovered by/);
+  for (const locator of [summary, electricity, gap]) {
+    await expect(locator).toBeVisible();
+    expect((await locator.boundingBox())!.y).toBeLessThan(844);
+  }
+});
+
+test('uses the common legal skeleton and moves focus to the new route heading', async ({ page }) => {
+  await page.getByRole('link', { name: 'Privacy', exact: true }).first().click();
+  await expect(page).toHaveURL(/\/privacy\/?$/);
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Terms' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Legal' }).getByRole('link', { name: 'Privacy' })).toBeVisible();
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /social-card/);
+  await page.goBack();
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+});
+
+test('opens the isolated sample directly with the demo query path', async ({ page }) => {
+  await page.goto('/?demo=1');
+  await expect(page.getByText('Demo — sample data, nothing is saved to your plan')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Review a sample plan.' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('demo:bill-runway:seeded'))).toBe('1');
+  expect(await page.evaluate(async () => (await indexedDB.databases()).some(database => database.name === 'demo:bill-runway'))).toBe(true);
+});
+
 test('@claim:keyboard-controls keeps import focus visible and action targets separated on a 390px keyboard journey', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
 

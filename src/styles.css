@@ -70,6 +70,11 @@ main { overflow:hidden; }
 .hero-art { display:block; align-self:stretch; min-width:0; border-radius:42% 12% 34% 8% / 18% 24% 12% 34%; overflow:hidden; box-shadow:var(--shadow); background:#152b3b; transform:rotate(1deg); }
 .hero-art img { width:100%; height:100%; min-height:560px; object-fit:cover; display:block; }
 
+.demo-heading { width:min(1260px,calc(100% - 48px)); margin:26px auto 28px; padding:24px 28px; border-left:5px solid var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); }
+.demo-heading h1 { font-size:clamp(2.2rem,4vw,3.7rem); margin-bottom:10px; }
+.demo-heading p:last-child { max-width:56ch; margin-bottom:0; color:var(--muted); }
+.demo-main .runway-shell { margin-bottom:70px; }
+
 .runway-shell { width:min(1260px,calc(100% - 48px)); margin:0 auto 100px; }
 .section-heading { display:flex; justify-content:space-between; align-items:end; gap:24px; margin-bottom:30px; }
 .section-heading h2 { margin:0; }
@@ -178,7 +183,7 @@ textarea { resize:vertical; }
 @media (max-width:900px) {
   .hero { grid-template-columns:1fr; margin-top:0; }
   .hero-copy { padding:45px 20px 28px; }
-  .hero-art { min-height:380px; grid-row:1; border-radius:26px 26px 90px 26px; }
+  .hero-art { min-height:380px; border-radius:26px 26px 90px 26px; }
   .hero-art img { min-height:380px; }
   .runway-grid { grid-template-columns:1fr; gap:45px; }
   .waypoints { border-left:0; border-top:1px solid color-mix(in srgb,var(--text) 20%,transparent); padding:30px 0 0; display:grid; grid-template-columns:1fr 1fr; gap:30px; }
@@ -197,11 +202,41 @@ textarea { resize:vertical; }
   .site-header .button.secondary::after { content:"⋯"; font-size:1.3rem; }
   .brand { font-size:1.08rem; }
   .demo-banner { padding:10px 14px; align-items:flex-start; flex-direction:column; }
-  .hero,.runway-shell,.info-sections,footer { width:calc(100% - 28px); }
+  .hero,.runway-shell,.info-sections,footer,.demo-heading { width:calc(100% - 28px); }
   .hero { min-height:0; margin-bottom:70px; }
   .hero-art { min-height:280px; }
   .hero-art img { min-height:280px; }
   .hero-copy { padding:35px 4px 0; }
+  .demo-heading { margin:16px auto 18px; padding:16px 17px; }
+  .demo-heading .eyebrow { margin-bottom:5px; }
+  .demo-heading h1 { font-size:2.2rem; line-height:1.02; }
+  .demo-heading p:last-child { font-size:.92rem; line-height:1.4; }
+  .demo-main .runway-shell { margin-bottom:46px; }
+  .demo-main .demo-heading { min-height:0; padding:12px 15px; margin:10px auto 12px; }
+  .demo-main .demo-heading .eyebrow,
+  .demo-main .demo-heading p:last-child { display:none; }
+  .demo-main .demo-heading h1 { margin:0; font-size:1.85rem; }
+  .demo-main .runway-shell { margin-bottom:36px; }
+  .demo-main .section-heading { flex-direction:row; align-items:center; gap:8px; margin-bottom:12px; }
+  .demo-main .section-heading .eyebrow { display:none; }
+  .demo-main .section-heading h2 { font-family:inherit; font-size:.9rem; letter-spacing:0; line-height:1.2; max-width:82px; }
+  .demo-main .range-switch { width:auto; flex:1; }
+  .demo-main .range-switch button { min-height:36px; padding:6px 9px; font-size:.78rem; }
+  .demo-main .summary-strip { padding:9px 0; margin-bottom:10px; }
+  .demo-main .summary-strip > div { padding-block:3px; }
+  .demo-main .summary-strip > div:nth-child(3),
+  .demo-main .summary-strip > div:nth-child(4) { margin-top:9px; }
+  .demo-main .summary-strip span { margin-bottom:0; font-size:.7rem; }
+  .demo-main .summary-strip strong { font-size:.9rem; }
+  .demo-main .gap-callout { gap:10px; padding:10px 12px; margin-bottom:12px; font-size:.82rem; line-height:1.35; }
+  .demo-main .gap-icon { width:26px; height:26px; flex-basis:26px; }
+  .demo-main .timeline > .subheading { min-height:36px; margin-bottom:0; }
+  .demo-main .timeline > .subheading h3 { font-size:1rem; }
+  .demo-main .timeline > .subheading > div { display:none; }
+  .demo-main .timeline-event { min-height:0; }
+  .demo-main .timeline-event > time { padding-top:10px; }
+  .demo-main .timeline-event .route-dot { margin-top:18px; }
+  .demo-main .event-main { padding:4px 0 10px; }
   h1 { font-size:clamp(2.9rem,15vw,4.5rem); }
   .hero-actions .button { flex:1; }
   .hero-actions a.button { flex-basis:100%; justify-content:flex-start; padding-inline:0; }
