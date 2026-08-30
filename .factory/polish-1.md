@@ -19,7 +19,7 @@ Review source: `971724960227d332bb2c5dfcacab77e858492812`.
 
 - `npm test`: 6 Vitest and 19 Playwright tests passed.
 - `npm run build`: passed; `dist/index.html` is 52.55 KB (15.85 KB gzip).
-- Fresh clone `/tmp/bill-runway-polish-clean-4OvuOR`: `npm ci`, build, full test suite, and every command in `claims.json` passed independently.
+- Fresh clone `/tmp/bill-runway-polish-clean-4OvuOR`: `npm ci`, build, full test suite, and every command in `claims.json` passed independently. Final committed clone `/tmp/bill-runway-polish-final-MaXxVK` repeated all ten claim commands independently.
 - `verify-url.sh` passed local `/`, `/demo`, `/privacy/`, and `/terms/` with zero console errors and exactly one h1/main each.
 - Axe WCAG A/AA serious/critical scan passes on light and dark app routes plus both legal pages.
 

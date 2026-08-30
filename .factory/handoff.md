@@ -23,6 +23,8 @@ Repaired the complete adversarial review at commit
 - Fresh clone: `/tmp/bill-runway-polish-clean-4OvuOR`.
 - Fresh clone commands passed: `npm ci`, `npm run build`, `npm test`, then all
   ten commands in `.factory/claims.json` individually.
+- Final committed clone `/tmp/bill-runway-polish-final-MaXxVK` repeated all ten
+  claim commands independently after the deployment-record commit.
 - Full suite: 6 Vitest tests and 19 Playwright tests passed.
 - Build: `dist/index.html` 52.55 KB, 15.85 KB gzip.
 - Local `verify-url.sh` reports are in `test-results/polish-1/verify-*`.
