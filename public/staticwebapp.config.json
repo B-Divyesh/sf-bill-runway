@@ -14,10 +14,6 @@
       "rewrite": "/index.html"
     },
     {
-      "route": "/demo/",
-      "rewrite": "/index.html"
-    },
-    {
       "route": "/sw.js",
       "headers": {
         "Cache-Control": "public, must-revalidate, max-age=30",
