@@ -15,17 +15,17 @@
   },
   {
     "id": "twelve-month-view",
-    "claim": "The full 12-month view is free and does not use checkout.",
+    "claim": "Shows a free 60-day or 12-month view without checkout.",
     "where": "first screen, range control, terms, README",
     "test": "npx playwright test --grep @claim:twelve-month-view",
     "sandbox": "fresh browser context; make billing endpoints return the verifier's 404; select 12 months; assert 365 days and zero billing requests"
   },
   {
     "id": "demo-isolation",
-    "claim": "Demo changes do not alter the real plan.",
+    "claim": "The one-click sample opens four realistic entries in a separate workspace that does not alter the real plan.",
     "where": "demo banner, privacy, README",
     "test": "npx playwright test --grep @claim:demo-isolation",
-    "sandbox": "fresh browser context; name a real plan; enter demo; exit; assert the real name remains and the demo database is deleted"
+    "sandbox": "fresh browser context; name a real plan; enter demo; assert four named entries; exit; assert the real name remains and the demo database is deleted"
   },
   {
     "id": "csv-export",
@@ -54,6 +54,20 @@
     "where": "README, planner",
     "test": "npx vitest run -t @claim:recurrence-rules",
     "sandbox": "unit fixture beginning January 31; assert January through April dates clamp to each month end"
+  },
+  {
+    "id": "recurrence-modes",
+    "claim": "Handles monthly, weekly, yearly, and one-time entries.",
+    "where": "README, bill and income forms",
+    "test": "npx vitest run -t @claim:recurrence-modes",
+    "sandbox": "unit fixtures; assert the observable scheduled dates for each advertised repeat mode"
+  },
+  {
+    "id": "paid-status",
+    "claim": "Records paid bills and lets you undo that status.",
+    "where": "README, payment run",
+    "test": "npx playwright test --grep @claim:paid-status",
+    "sandbox": "fresh browser context; add a bill, mark it paid, reload, then undo and assert the status changes"
   },
   {
     "id": "keyboard-controls",

@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   await page.goto('/');
 });
 
-test('@claim:first-gap plans an uncovered bill, persists it, and marks it paid', async ({ page }) => {
+test('@claim:first-gap identifies the first uncovered bill amount', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/See cash gaps/);
   await page.getByRole('button', { name: 'Plan settings' }).click();
   await page.getByLabel('Money available now').fill('100.00');
@@ -21,8 +21,21 @@ test('@claim:first-gap plans an uncovered bill, persists it, and marks it paid',
   await expect(page.getByText(/is uncovered by/)).toContainText('$25.50');
   await page.reload();
   await expect(page.getByText('Electricity').first()).toBeVisible();
+});
+
+test('@claim:paid-status records a paid bill across reload and restores it with undo', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add bill', exact: true }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'Add bill' });
+  await dialog.getByLabel('Name', { exact: true }).fill('Internet');
+  await dialog.getByRole('textbox', { name: 'Amount', exact: true }).fill('45.00');
+  await dialog.getByRole('button', { name: 'Add bill', exact: true }).click();
   await page.getByRole('button', { name: 'Mark paid' }).click();
-  await expect(page.getByText('All covered')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo paid' })).toBeVisible();
+  await page.reload();
+  const undo = page.getByRole('button', { name: 'Undo paid' });
+  await expect(undo).toBeVisible();
+  await undo.click();
+  await expect(page.getByRole('button', { name: 'Mark paid' })).toBeVisible();
 });
 
 test('@claim:offline-reload stays usable offline after an online visit', async ({ browser }) => {
@@ -103,6 +116,7 @@ test('@claim:twelve-month-view keeps the 12-month planner usable when no product
     return route.fulfill({ status: 404, json: { error: 'enabled factory product', status: 404 } });
   });
 
+  await expect(page.getByRole('heading', { name: 'The next 60 days' })).toBeVisible();
   await page.getByRole('button', { name: '12 months' }).click();
 
   await expect(page.getByRole('heading', { name: 'The next 365 days' })).toBeVisible();
@@ -133,6 +147,7 @@ test('@claim:demo-isolation keeps sample changes separate from the real plan', a
   await expect(page.getByText('Demo — sample data, nothing is saved to your plan')).toBeVisible();
   await expect(page.getByText('Care plan sample')).toBeVisible();
   await expect(page.getByRole('button', { name: /Electricity/ })).toBeVisible();
+  await expect(page.locator('.entry-edit')).toHaveCount(4);
 
   await page.getByRole('button', { name: 'Start for real' }).click();
   await expect(page).toHaveURL('http://127.0.0.1:4173/');
@@ -212,6 +227,27 @@ test('keeps the sample action and populated demo plan in the first phone screen'
   for (const locator of [summary, electricity, gap]) {
     await expect(locator).toBeVisible();
     expect((await locator.boundingBox())!.y).toBeLessThan(844);
+  }
+});
+
+test('keeps demo range controls and legal Terms links at least 44px at 390px', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/demo');
+  const rangeTargets = await page.locator('[data-days]').evaluateAll(targets => targets.map(target => {
+    const box = target.getBoundingClientRect();
+    return { width: box.width, height: box.height };
+  }));
+  expect(rangeTargets).toHaveLength(2);
+  expect(rangeTargets.every(target => target.width >= 44 && target.height >= 44)).toBe(true);
+
+  for (const path of ['/privacy/', '/terms/']) {
+    await page.goto(path);
+    const termsTargets = await page.getByRole('link', { name: 'Terms', exact: true }).evaluateAll(targets => targets.map(target => {
+      const box = target.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    }));
+    expect(termsTargets.length).toBeGreaterThan(0);
+    expect(termsTargets.every(target => target.width >= 44 && target.height >= 44)).toBe(true);
   }
 });
 

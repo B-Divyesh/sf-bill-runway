@@ -221,7 +221,8 @@ textarea { resize:vertical; }
   .demo-main .section-heading .eyebrow { display:none; }
   .demo-main .section-heading h2 { font-family:inherit; font-size:.9rem; letter-spacing:0; line-height:1.2; max-width:82px; }
   .demo-main .range-switch { width:auto; flex:1; }
-  .demo-main .range-switch button { min-height:36px; padding:6px 9px; font-size:.78rem; }
+  /* Keep the compact demo switch usable by touch as well as by keyboard. */
+  .demo-main .range-switch button { min-height:44px; padding:6px 9px; font-size:.78rem; }
   .demo-main .summary-strip { padding:9px 0; margin-bottom:10px; }
   .demo-main .summary-strip > div { padding-block:3px; }
   .demo-main .summary-strip > div:nth-child(3),

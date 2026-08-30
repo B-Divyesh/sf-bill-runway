@@ -1,7 +1,7 @@
 # Bill Runway
 
 Bill Runway helps you compare upcoming bills with expected income on this device.
-It shows the first bill you cannot cover, records paid bills, and exports the upcoming list.
+It shows the first bill you cannot cover, records paid bills with an undo, and exports the upcoming list.
 
 It is for people and caregivers planning due dates without a bank connection.
 It is not a budgeting service, payment service, or financial advice.

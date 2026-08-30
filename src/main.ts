@@ -6,7 +6,7 @@ import type { AppData, Entry, EntryKind, Occurrence, Recurrence, Settings } from
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const DEMO_SEEDED_KEY = 'demo:bill-runway:seeded';
-const BUILD_ID = 'polish-1';
+const BUILD_ID = 'repair-5';
 
 let data: AppData;
 let days = 60;
