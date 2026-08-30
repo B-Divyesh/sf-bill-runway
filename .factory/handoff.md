@@ -86,8 +86,25 @@ described beside each claim.
 
 ## Deployment
 
-The deployment id, live response evidence, and byte hashes are appended after
-the committed repair is pushed and deployed through the static work order.
+Deployed committed repair `e077d1c` through the assigned static work order.
+
+- Static Web Apps deployment: `3e02d073-1a3a-4998-9d77-24e1577d82b8`.
+- Production URL: <https://bill-runway.sociobot.in>.
+- Live SHA-256 hashes exactly match the local build for `index.html`
+  (`fe9bd215…f76f3`), `sw.js` (`f43d529e…11b3fb`), and
+  `manifest.webmanifest` (`a15500ad…d4645f`).
+- Live `verify-url.sh` passed `/`, `/demo`, `/privacy/`, and `/terms/`; every
+  route returned 200 with no browser console errors.
+- Live 390 px checks measured both forecast controls at 131 by 44 px and every
+  `Terms` link at least 44 by 44 px. Live axe checks returned zero serious or
+  critical WCAG A/AA findings on root/demo in light and dark themes and both
+  legal pages.
+- In a fresh live browser context, demo loaded through `bill-runway-v9`, then
+  reloaded offline with its offline status visible. The same live session made
+  no off-origin request and had no console or page errors.
+- Live root sends HSTS, CSP, Permissions-Policy, `nosniff`, and strict-origin
+  referrer policy. The manifest is `application/manifest+json`; unknown routes
+  return the designed HTTP 404 page.
 
 ## Known gaps
 
