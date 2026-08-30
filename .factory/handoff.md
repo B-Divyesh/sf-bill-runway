@@ -3,8 +3,8 @@
 ## Status
 
 Repaired the complete adversarial review at commit
-`971724960227d332bb2c5dfcacab77e858492812`. The code repair is
-`c44073b`; final documentation and release evidence follow in this work order.
+`971724960227d332bb2c5dfcacab77e858492812`. Repair commits are `c44073b`,
+`e55ea01`, and `aa688f6`.
 
 ## What changed
 
@@ -35,8 +35,22 @@ Repaired the complete adversarial review at commit
 
 ## Deploy and live re-check
 
-Deployment and cold live checks are completed after the final commit. Their
-exact URL/status evidence is appended before handoff.
+- Deployed `dist/` using `/opt/fleet/lib/deploy-static.sh bill-runway
+  /work/repo/dist`. Static Web Apps deployment:
+  `bb15476c-32fc-4228-b760-e98f7381e595`.
+- Cold production `verify-url.sh` passed `https://bill-runway.sociobot.in/`,
+  `/demo`, `/privacy/`, and `/terms/`. Each report has zero console errors and
+  validates the title, language, h1, main landmark, and image alt text.
+- `https://bill-runway.sociobot.in/not-a-real-page` returned HTTP 404. Its
+  rendered title is `Page not found — Bill Runway` and its robots directive is
+  `noindex, nofollow`.
+- A cold 390×844 browser check measured the landing sample action at y=532.33.
+  After clicking it, the live demo summary was at y=360.17; its gap and first
+  named bill were also inside the first viewport. Evidence:
+  `test-results/polish-1/live-demo-390.png`.
+- Live keyboard navigation focused Privacy's h1, then the home h1 after Back.
+  Live axe WCAG A/AA scans found zero serious or critical violations on `/`,
+  `/demo`, `/privacy/`, and `/terms/`.
 
 ## Known gap
 
