@@ -275,9 +275,13 @@ test('@claim:print-layout keeps the payment run and removes controls in print me
 });
 
 test('has no automatically detectable serious accessibility issues', async ({ page }) => {
-  for (const theme of ['light', 'dark']) {
-    await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
-    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
-    expect(results.violations.filter(v => ['serious', 'critical'].includes(v.impact || '')), `${theme} theme`).toEqual([]);
+  for (const path of ['/', '/demo', '/privacy/', '/terms/']) {
+    await page.goto(path);
+    const themes = path === '/' || path === '/demo' ? ['light', 'dark'] : ['default'];
+    for (const theme of themes) {
+      if (theme !== 'default') await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
+      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+      expect(results.violations.filter(v => ['serious', 'critical'].includes(v.impact || '')), `${path} ${theme}`).toEqual([]);
+    }
   }
 });
